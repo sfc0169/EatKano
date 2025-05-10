@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- lang属性は index.js で設定される想定 -->
+<!-- lang属性は index.js で動的に設定されるため、ここでは削除またはコメントアウト -->
 <html>
 
 <head>
-    <title data-i18n="eat-kano">EatKano</title> <!-- 初期表示用、JSで上書き -->
-    <meta itemprop="name" content="吃掉小鹿乃" /> <!-- 中国語圏向けか -->
+    <title data-i18n="eat-kano">EatKano</title> <!-- 初期タイトル、JSで上書きされる -->
+    <meta itemprop="name" content="吃掉小鹿乃" />
     <meta itemprop="description" content="新概念音游" />
     <meta charset="utf-8" />
     <meta name="viewport"
@@ -12,131 +12,140 @@
 
     <!-- CSS -->
     <link href="./static/index.css" rel="stylesheet" type="text/css">
+    <!-- Bootstrap CSS (CDN) -->
     <link href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/css/bootstrap.min.css"
         rel="stylesheet">
 
     <!-- JavaScript Libraries -->
     <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
-    <!-- <script src="https://passport.cnblogs.com/scripts/jsencrypt.min.js"></script> --> <!-- おそらく不要なのでコメントアウト -->
+    <!-- jsencrypt.min.js はPHPバックエンドでの暗号化用だったので、Supabase移行後は不要 -->
+    <!-- <script src="https://passport.cnblogs.com/scripts/jsencrypt.min.js"></script> -->
     <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
     <script
         src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Supabase JS SDK (重要) -->
+    <!-- Supabase JS SDK (重要！) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 </head>
 
-<body onLoad="init()" oncontextmenu="event.returnValue=false;"> <!-- self. は不要なことが多い -->
+<body onLoad="init()" oncontextmenu="event.returnValue=false;"> <!-- self. は通常不要 -->
 
     <!-- Game Score Layer -->
     <div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
-        <div class="p-3" style="margin-top: 15vh; background-color: rgba(40, 40, 60, 0.85); border-radius: 10px;">
-            <div id="GameScoreLayer-text" class="mb-3" style="font-size: 1.2em;"></div>
+        <!-- スコア表示部分のスタイルを少し調整 -->
+        <div class="p-3 mx-auto" style="margin-top: 20vh; max-width: 450px; background-color: rgba(40, 40, 60, 0.9); border-radius: 15px; color: white;">
+            <div id="GameScoreLayer-text" class="mb-3" style="font-size: 1.3em; font-weight: bold;"></div>
             <div id="GameScoreLayer-CPS" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
                 <div class="col-auto pe-2" style="font-weight: bold;">CPS:</div>
-                <div class="col-auto" id="cps" style="font-weight: bold;"></div>
+                <div class="col-auto" id="cps" style="font-weight: bold; min-width: 60px;"></div> <!-- 値表示用に最小幅 -->
             </div>
             <div id="GameScoreLayer-score" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="score" style="font-weight: bold;">SCORE-I18N:</div>
-                <div class="col-auto" id="score" style="font-weight: bold;"></div>
+                <div class="col-auto pe-2" data-i18n="score" style="font-weight: bold;">SCORE:</div>
+                <div class="col-auto" id="score" style="font-weight: bold; min-width: 60px;"></div>
             </div>
             <div id="GameScoreLayer-bast" class="mb-3 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="best" style="font-weight: bold;">BEST-I18N:</div>
-                <div class="col-auto" id="best" style="font-weight: bold;"></div>
+                <div class="col-auto pe-2" data-i18n="best" style="font-weight: bold;">BEST:</div>
+                <div class="col-auto" id="best" style="font-weight: bold; min-width: 60px;"></div>
             </div>
-            <div class="d-grid gap-2">
+            <div class="d-grid gap-2"> <!-- ボタンを縦に並べる -->
                 <button type="button" class="btn btn-primary btn-lg" id="replay" onclick="replayBtn()"
-                    data-i18n="again">AGAIN-I18N</button>
+                    data-i18n="again">AGAIN</button>
                 <button type="button" class="btn btn-info btn-lg" onclick="window.location.reload()"
-                    data-i18n="home">HOME-I18N</button>
+                    data-i18n="home">HOME</button>
                 <button type="button" class="btn btn-outline-light btn-lg"
-                    onclick="window.open('https://github.com/arcxingye/EatKano', '_blank')" data-i18n="repo">REPO-I18N</button>
+                    onclick="window.open('https://github.com/arcxingye/EatKano', '_blank')" data-i18n="repo">REPO</button>
             </div>
         </div>
+        <!-- </div> ← この閉じタグが余分だった可能性 -->
     </div>
 
+
     <!-- Welcome Layer -->
-    <div id="welcome" class="SHADE BOX-M">
-        <div class="welcome-bg FILL"></div> <!-- 背景画像用 -->
-        <div class="FILL BOX-M d-flex align-items-center justify-content-center" style="z-index:5;"> <!-- Flexboxで中央揃え -->
-            <div class="container text-center" style="max-width: 500px;"> <!-- コンテンツ幅制限 -->
+    <div id="welcome" class="SHADE BOX-M"> <!-- BOX-Mは古いFlexなのでCSSで調整推奨 -->
+        <div class="welcome-bg FILL"></div>
+        <div class="FILL d-flex align-items-center justify-content-center" style="z-index:5; padding:15px;"> <!-- Flexboxで中央寄せ + パディング -->
+            <div class="container text-center" style="max-width: 500px;"> <!-- コンテンツ幅を制限 -->
                 <div class="mb-5">
-                    <div style="font-size:3em; color:#FEF002; font-weight: bold; text-shadow: 2px 2px 4px #000;" data-i18n="game-title">
-                        GAME-TITLE-I18N</div><br />
-                    <div id="desc" style="font-size:1.8em; color:#fff; line-height:1.5em; text-shadow: 1px 1px 2px #000;">
-                        <span data-i18n="game-intro1">GAME-INTRO1-I18N</span><br />
-                        <span data-i18n="game-intro2">GAME-INTRO2-I18N</span><br />
+                    <div style="font-size:3em; color:#FEF002; font-weight: bold; text-shadow: 2px 2px 4px #000000;" data-i18n="game-title">
+                        EAT KANO</div><br /> <!-- フォールバックテキスト変更 -->
+                    <div id="desc" style="font-size:1.8em; color:#fff; line-height:1.5em; text-shadow: 1px 1px 2px #000000;">
+                        <span data-i18n="game-intro1">カノを食べる</span><br /> <!-- フォールバックテキスト変更 -->
+                        <span data-i18n="game-intro2">新概念の音楽ゲーム！</span><br /> <!-- フォールバックテキスト変更 -->
                     </div>
                 </div>
 
-                <div id="btn_group" class="d-grid gap-3 mx-auto" style="max-width: 280px;">
-                    <a class="btn btn-primary btn-lg" onclick="readyBtn()" data-i18n="start">START-I18N</a>
+                <div id="btn_group" class="d-grid gap-3 mx-auto" style="max-width: 280px;"> <!-- ボタン幅と間隔調整 -->
+                    <a class="btn btn-primary btn-lg" onclick="readyBtn()" data-i18n="start">START</a>
                     <div class="dropdown">
                         <a class="w-100 btn btn-secondary btn-lg dropdown-toggle" href="javascript:void(0);" role="button"
                             id="mode" data-bs-toggle="dropdown" aria-expanded="false"
-                            data-i18n="normal">NORMAL-I18N</a>
-                        <ul class="dropdown-menu w-100" aria-labelledby="mode">
+                            data-i18n="normal">NORMAL</a>
+                        <ul class="dropdown-menu w-100" aria-labelledby="mode"> <!-- w-100でドロップダウン幅調整 -->
                             <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_NORMAL)"
-                                    data-i18n="normal">NORMAL-I18N</a></li>
+                                    data-i18n="normal">NORMAL</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_ENDLESS)"
-                                    data-i18n="endless">ENDLESS-I18N</a></li>
+                                    data-i18n="endless">ENDLESS</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_PRACTICE)"
-                                    data-i18n="practice">PRACTICE-I18N</a></li>
+                                    data-i18n="practice">PRACTICE</a></li>
                         </ul>
                     </div>
-                    <!-- ランキングページへのリンクを追加 -->
-                    <a href="./leaderboard.html" class="btn btn-success btn-lg" data-i18n="rank">RANKING-I18N</a>
-                    <a class="btn btn-info btn-lg" onclick="show_setting()" data-i18n="settings">SETTINGS-I18N</a>
+                    <!-- ランキングページへのリンクを元のHTMLにはなかったので、ここに追加 -->
+                    <a href="./leaderboard.html" class="btn btn-success btn-lg" data-i18n="rank">RANKING</a>
+                    <a class="btn btn-info btn-lg" onclick="show_setting()" data-i18n="settings">SETTINGS</a>
                 </div>
 
-                <div id="setting" class="mt-4 p-3" style="display: none; background-color: rgba(0,0,0,0.7); border-radius: 8px; color: white;">
-                    <div class="btn-group w-100 mb-3" role="group">
+                <div id="setting" class="mt-4 p-3" style="display: none; background-color: rgba(0,0,0,0.75); border-radius: 10px; color:white; max-width: 450px; margin-left:auto; margin-right:auto;">
+                    <div class="btn-group w-100 mb-3" role="group" aria-label="Image and Sound Settings">
                         <a data-i18n="img-before" type="button" class="btn btn-outline-light flex-fill me-1"
-                            onclick="getClickBeforeImage()">IMG-BEFORE-I18N</a>
+                            onclick="getClickBeforeImage()">IMG-BEFORE</a>
                         <input type="file" id="click-before-image" accept="image/*" class="d-none"
                             onchange="saveClickBeforeImage()">
                         <a data-i18n="img-after" type="button" class="btn btn-outline-light flex-fill"
-                            onclick="getClickAfterImage()">IMG-AFTER-I18N</a>
-                        <input type="file" id="click-after-image" accept="image/*" class="d-none"
+                            onclick="getClickAfterImage()">IMG-AFTER</a>
+                        <input type="file" id="click-after-image" accept="image/*" class="d-none" <!-- style="display: none;" は .d-none でカバー -->
                             onchange="saveClickAfterImage()">
                     </div>
-                    <div class="text-center mb-3">
-                         <a id="sound" type="button" class="btn btn-outline-light w-50" onclick="changeSoundMode()">SOUND-ON/OFF-I18N</a>
+                     <div class="text-center mb-3"> <!-- サウンドボタンを中央に配置 -->
+                        <a id="sound" type="button" class="btn btn-outline-light w-75" onclick="changeSoundMode()">SOUND ON/OFF</a>
+                    </div>
+
+                    <!-- ユーザー名とメッセージ入力欄を追加 (index.jsのsubmitScoreで使うため) -->
+                    <div class="input-group mb-3">
+                        <span class="input-group-text col-md-3 col-4" data-i18n="name">Name</span>
+                        <input data-placeholder-i18n="player-name" type="text" id="username" class="form-control" placeholder="Player">
+                    </div>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text col-md-3 col-4" data-i18n="comment">Comment</span>
+                        <input data-placeholder-i18n="comment-text" type="text" id="message" class="form-control" placeholder="Message">
                     </div>
 
                     <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="name">NAME-I18N</span>
-                        <input data-placeholder-i18n="player-name" type="text" id="username" class="form-control" placeholder="PLAYER-NAME-I18N">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="comment">COMMENT-I18N</span>
-                        <input data-placeholder-i18n="comment-text" type="text" id="message" class="form-control" placeholder="COMMENT-I18N">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="title">TITLE-I18N</span>
+                        <!-- col-2 は狭すぎるので col-md-3 col-4 などに調整 -->
+                        <span class="input-group-text col-md-3 col-4" data-i18n="title">TITLE</span>
                         <input data-placeholder-i18n="eat-kano" type="text" id="title" class="form-control"
-                            placeholder="EAT-KANO-I18N">
+                            placeholder="EAT KANO">
                     </div>
                     <div class="input-group mb-3">
-                        <span data-i18n="key" class="input-group-text col-md-3 col-4">KEY-I18N</span>
+                        <span data-i18n="key" class="input-group-text col-md-3 col-4">KEY</span>
                         <input data-placeholder-i18n="default-dfjk" type="text" id="keyboard" class="form-control"
-                            maxlength=4 placeholder="DFJK-I18N">
+                            maxlength=4 placeholder="DFJK">
                     </div>
                     <div class="input-group mb-3">
-                        <span data-i18n="time" class="input-group-text col-md-3 col-4">TIME-I18N</span>
-                        <input data-placeholder-i18n="default-20s" type="number" id="gameTime" class="form-control"
-                            maxlength=4 placeholder="20"> <!-- type="number" に変更 -->
+                        <span data-i18n="time" class="input-group-text col-md-3 col-4">TIME</span>
+                        <input data-placeholder-i18n="default-20s" type="number" id="gameTime" class="form-control" <!-- type="number"推奨 -->
+                            maxlength=4 placeholder="20">
                     </div>
-                    <div class="d-grid">
+                    <div class="d-grid"> <!-- OKボタンもd-gridで幅いっぱいに -->
                         <button type="button" class="btn btn-primary btn-lg" onclick="show_btn();save_cookie();"
-                            data-i18n="ok">OK-I18N</button>
+                            data-i18n="ok">OK</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <script src="./static/index.js"></script> <!-- index.js は最後に読み込むのが一般的 -->
+    <!-- index.js は body の最後に読み込むのが一般的で安全 -->
+    <script src="./static/index.js"></script>
 </body>
 
 </html>
