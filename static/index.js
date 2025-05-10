@@ -394,8 +394,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // ここが修正ポイント！アニメーション表示のために遅延して gameOver を呼び出す
-                setTimeout(() => { gameOver(); }, 600); // 赤の点滅アニメーションが終わる時間（0.2秒×3回）後に実行
+                // ここを修正: アニメーション表示のため遅延させてからgameOver()を呼び出す
+                setTimeout(() => { gameOver(); }, 600); // 0.6秒後にゲームオーバー処理
             }
         }
         return false;
