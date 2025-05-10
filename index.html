@@ -1,145 +1,448 @@
 <!DOCTYPE html>
-<!-- lang属性は index.js で動的に設定されるため、ここでは削除またはコメントアウト -->
+<!-- lang属性はJSで設定 -->
 <html>
-
 <head>
-    <title data-i18n="eat-kano">EatKano</title> <!-- 初期タイトル、JSで上書きされる -->
-    <meta itemprop="name" content="吃掉小鹿乃" /> <!-- 中国語圏向けか -->
-    <meta itemprop="description" content="新概念音游" />
-    <meta charset="utf-8" />
-    <meta name="viewport"
-        content="initial-scale=1, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, width=device-width,target-densitydpi=device-dpi" />
-
-    <!-- CSS -->
-    <link href="./static/index.css" rel="stylesheet" type="text/css">
-    <!-- Bootstrap CSS (CDN) -->
-    <link href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
-    <!-- jsencrypt.min.js はPHPバックエンドでの暗号化用だったので、Supabase移行後は不要 -->
-    <!-- <script src="https://passport.cnblogs.com/scripts/jsencrypt.min.js"></script> -->
-    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
-    <script
-        src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Supabase JS SDK (重要！) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <title id="pageTitle">ランキング</title> <!-- JSで動的に変更 -->
+  <meta item="description" content="EatKano Ranking" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0" />
+  <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.staticfile.org/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { padding-top: 70px; } /* Navbar height +少し余白 */
+    .rank-badge { font-size: 0.8rem; margin-right: 0.5rem; padding: 0.3em 0.6em; }
+    .footer-record { padding:0.5em 1em; background-color: #f8f9fa; border-top: 1px solid #dee2e6; font-size: 0.9rem;}
+    #leaderboard .list-group-item h5 { font-size: 1.1rem; }
+    #leaderboard .list-group-item small:first-of-type { font-size: 0.75rem; }
+    #leaderboard .list-group-item p { font-size: 0.85rem; margin-bottom: 0.3rem !important;}
+    #leaderboard .list-group-item small.text-muted {font-size: 0.8rem;}
+    .pagination .page-link { font-size: 0.9rem; }
+  </style>
 </head>
-
-<body onLoad="init()" oncontextmenu="event.returnValue=false;"> <!-- self. は通常不要 -->
-
-    <!-- Game Score Layer -->
-    <div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
-        <div class="p-3 mx-auto" style="margin-top: 20vh; max-width: 450px; background-color: rgba(40, 40, 60, 0.9); border-radius: 15px; color: white;">
-            <div id="GameScoreLayer-text" class="mb-3" style="font-size: 1.3em; font-weight: bold;"></div>
-            <div id="GameScoreLayer-CPS" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" style="font-weight: bold;">CPS:</div>
-                <div class="col-auto" id="cps" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div id="GameScoreLayer-score" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="score" style="font-weight: bold;">SCORE:</div> <!-- フォールバックテキストを英語に -->
-                <div class="col-auto" id="score" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div id="GameScoreLayer-bast" class="mb-3 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="best" style="font-weight: bold;">BEST:</div> <!-- フォールバックテキストを英語に -->
-                <div class="col-auto" id="best" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div class="d-grid gap-2">
-                <button type="button" class="btn btn-primary btn-lg" id="replay" onclick="replayBtn()"
-                    data-i18n="again">AGAIN</button> <!-- フォールバックテキストを英語に -->
-                <button type="button" class="btn btn-info btn-lg" onclick="window.location.reload()"
-                    data-i18n="home">HOME</button> <!-- フォールバックテキストを英語に -->
-                <button type="button" class="btn btn-outline-light btn-lg"
-                    onclick="window.open('https://github.com/arcxingye/EatKano', '_blank')" data-i18n="repo">REPO</button> <!-- フォールバックテキストを英語に -->
-            </div>
-        </div>
-        <!-- 閉じタグが一つ余分だったのを修正 -->
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="./" data-i18n="navbar-brand">EatKano</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" href="?type=all" data-type="all" data-i18n="all-ranking">総合</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="?type=day" data-type="day" data-i18n="daily-ranking">デイリー</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="?type=week" data-type="week" data-i18n="weekly-ranking">ウィークリー</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="?type=month" data-type="month" data-i18n="monthly-ranking">マンスリー</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://github.com/arcxingye/EatKano/" target="_blank" data-i18n="source-code">ソースコード</a>
+          </li>
+        </ul>
+        <form class="d-flex text-nowrap" id="searchForm">
+          <input class="form-control me-2" id="searchInput" data-placeholder-i18n="query-input" placeholder="名前で検索...">
+          <button class="btn btn-outline-success" type="submit" data-i18n="search-btn">検索</button>
+        </form>
+      </div>
     </div>
+  </nav>
 
-
-    <!-- Welcome Layer -->
-    <div id="welcome" class="SHADE BOX-M"> <!-- BOX-Mは古いFlexなのでCSSで modern Flexbox に置き換え推奨 -->
-        <div class="welcome-bg FILL"></div> <!-- 背景画像用 -->
-        <div class="FILL d-flex align-items-center justify-content-center" style="z-index:5; padding:15px;">
-            <div class="container text-center" style="max-width: 500px;">
-                <div class="mb-5">
-                    <div style="font-size:3em; color:#FEF002; font-weight: bold; text-shadow: 2px 2px 4px #000000;" data-i18n="game-title">
-                        EAT KANO</div><br />
-                    <div id="desc" style="font-size:1.8em; color:#fff; line-height:1.5em; text-shadow: 1px 1px 2px #000000;">
-                        <span data-i18n="game-intro1">Eat Kano!</span><br /> <!-- フォールバックテキストを英語に -->
-                        <span data-i18n="game-intro2">A new concept music game!</span><br /> <!-- フォールバックテキストを英語に -->
-                    </div>
-                </div>
-
-                <div id="btn_group" class="d-grid gap-3 mx-auto" style="max-width: 280px;">
-                    <a class="btn btn-primary btn-lg" onclick="readyBtn()" data-i18n="start">START</a>
-                    <div class="dropdown">
-                        <a class="w-100 btn btn-secondary btn-lg dropdown-toggle" href="javascript:void(0);" role="button"
-                            id="mode" data-bs-toggle="dropdown" aria-expanded="false"
-                            data-i18n="normal">NORMAL</a>
-                        <ul class="dropdown-menu w-100" aria-labelledby="mode">
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_NORMAL)"
-                                    data-i18n="normal">NORMAL</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_ENDLESS)"
-                                    data-i18n="endless">ENDLESS</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_PRACTICE)"
-                                    data-i18n="practice">PRACTICE</a></li>
-                        </ul>
-                    </div>
-                    <a href="./leaderboard.html" class="btn btn-success btn-lg" data-i18n="rank">RANKING</a> <!-- ランキングへのリンク -->
-                    <a class="btn btn-info btn-lg" onclick="show_setting()" data-i18n="settings">SETTINGS</a>
-                </div>
-
-                <div id="setting" class="mt-4 p-3" style="display: none; background-color: rgba(0,0,0,0.75); border-radius: 10px; color:white; max-width: 450px; margin-left:auto; margin-right:auto;">
-                    <div class="btn-group w-100 mb-3" role="group" aria-label="Image and Sound Settings">
-                        <a data-i18n="img-before" type="button" class="btn btn-outline-light flex-fill me-1"
-                            onclick="getClickBeforeImage()">IMG-BEFORE</a>
-                        <input type="file" id="click-before-image" accept="image/*" class="d-none"
-                            onchange="saveClickBeforeImage()">
-                        <a data-i18n="img-after" type="button" class="btn btn-outline-light flex-fill"
-                            onclick="getClickAfterImage()">IMG-AFTER</a>
-                        <input type="file" id="click-after-image" accept="image/*" class="d-none"
-                            onchange="saveClickAfterImage()">
-                    </div>
-                     <div class="text-center mb-3">
-                        <a id="sound" type="button" class="btn btn-outline-light w-75" onclick="changeSoundMode()">SOUND ON/OFF</a>
-                    </div>
-
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="name">Name</span>
-                        <input data-placeholder-i18n="player-name" type="text" id="username" class="form-control" placeholder="Player">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="comment">Comment</span>
-                        <input data-placeholder-i18n="comment-text" type="text" id="message" class="form-control" placeholder="Message">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="title">TITLE</span>
-                        <input data-placeholder-i18n="eat-kano" type="text" id="title" class="form-control"
-                            placeholder="EAT KANO">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span data-i18n="key" class="input-group-text col-md-3 col-4">KEY</span>
-                        <input data-placeholder-i18n="default-dfjk" type="text" id="keyboard" class="form-control"
-                            maxlength=4 placeholder="DFJK">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span data-i18n="time" class="input-group-text col-md-3 col-4">TIME</span>
-                        <input data-placeholder-i18n="default-20s" type="number" id="gameTime" class="form-control"
-                            maxlength=4 placeholder="20">
-                    </div>
-                    <div class="d-grid">
-                        <button type="button" class="btn btn-primary btn-lg" onclick="show_btn();save_cookie();"
-                            data-i18n="ok">OK</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container mt-4" style="max-width:720px;">
+    <div class="page-header text-center">
+      <br />
+      <h1 id="rankingTitle" data-i18n="all-rank">総合ランキング</h1><br />
     </div>
-    <script src="./static/index.js"></script>
+    <div id="leaderboard" class="list-group shadow-sm">
+      <!-- ランキングデータはJSでここに挿入 -->
+      <div class="list-group-item text-center" id="loadingMessage" data-i18n="loading">読み込み中...</div>
+    </div>
+    <nav aria-label="Page navigation" class="mt-4 mb-5">
+      <ul class="pagination justify-content-center" id="pagination">
+        <!-- ページネーションはJSでここに挿入 -->
+      </ul>
+    </nav>
+  </div>
+
+  <footer class='fixed-bottom container footer-record' style='max-width:720px; margin:0 auto;'>
+    <div class='text-center' id="selfRecord">
+      <!-- 自己ベスト記録はJSでここに挿入 -->
+    </div>
+  </footer>
+
+  <script>
+    // ─── Supabase Client Initialization ───
+    const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co/';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ─── End of Supabase Client Initialization ───
+
+    let I18N = {}; // 国際化文字列格納用
+    const ITEMS_PER_PAGE = 10;
+    const MAX_PAGES_TO_SHOW = 9; // ページネーションで表示する最大ページ数
+    let currentPage = 1;
+    let currentRankingType = 'all';
+    let currentQuery = '';
+    let totalItems = 0;
+
+    // DOM Elements
+    const leaderboardElement = document.getElementById('leaderboard');
+    const paginationElement = document.getElementById('pagination');
+    const rankingTitleElement = document.getElementById('rankingTitle');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const selfRecordElement = document.getElementById('selfRecord');
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link[data-type]');
+    const loadingMessageElement = document.getElementById('loadingMessage');
+
+    // Helper: Cookie function (from index.js, slightly modified for ranking page)
+    function cookie(name, value, timeInDays) {
+        function toStr(obj) {
+            if (typeof obj === 'object') { try { return JSON.stringify(obj); } catch(e){ return String(obj);}}
+            return String(obj);
+        }
+        if (name) {
+            if (value !== undefined) {
+                let expires = "";
+                if (timeInDays) {
+                    let date = new Date();
+                    date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000));
+                    expires = "; expires=" + date.toUTCString();
+                }
+                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/";
+                return true;
+            } else {
+                let nameEQ = name + "=";
+                let ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) {
+                        let valStr = unescape(c.substring(nameEQ.length, c.length));
+                        try {
+                            if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr);
+                            if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr);
+                        } catch (e) { /* ignore */ }
+                        return valStr;
+                    }
+                }
+                return null;
+            }
+        }
+        let data = {}; let ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); }
+        return data;
+    }
+
+    // Helper: Format date
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleString((I18N && I18N.lang && I18N.lang !== 'en' ? I18N.lang + '-JP' : 'ja-JP'), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Helper: Get rank suffix
+    function getRankSuffix(rank) { /* ... (same as before) ... */
+        if (rank % 100 >= 11 && rank % 100 <= 13) return 'th';
+        switch (rank % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+        }
+    }
+
+    // Helper: Get JSON for i18n (similar to index.js)
+    async function loadI18N() {
+        const LANGUAGES = [ { regex: /^zh\b/, lang: 'zh' }, { regex: /^ja\b/, lang: 'ja' }, { regex: /.*/, lang: 'en'} ];
+        const detectedLang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en';
+        
+        try {
+            const response = await fetch(`./static/i18n/${detectedLang}.json`);
+            if (!response.ok) throw new Error(`Failed to load ${detectedLang}.json`);
+            I18N = await response.json();
+        } catch (error) {
+            console.warn(error.message + " Falling back to English.");
+            try {
+                const response = await fetch(`./static/i18n/en.json`);
+                if (!response.ok) throw new Error('Failed to load en.json');
+                I18N = await response.json();
+            } catch (fallbackError) {
+                console.error(fallbackError.message);
+                I18N = {}; // Prevent further errors
+            }
+        }
+        applyI18N();
+    }
+
+    // Apply i18n texts to elements
+    function applyI18N() {
+        if (!I18N) return;
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            if (I18N[key] !== undefined) el.textContent = I18N[key];
+        });
+        document.querySelectorAll('[data-placeholder-i18n]').forEach(el => {
+            const key = el.dataset.placeholderI18n;
+            if (I18N[key] !== undefined) el.placeholder = I18N[key];
+        });
+        if (I18N['rank-title']) document.getElementById('pageTitle').textContent = I18N['rank-title'];
+        if (I18N['lang']) document.documentElement.lang = I18N['lang'];
+        // Update dynamic titles after loading i18n
+        updateRankingTitle();
+    }
+    
+    function updateRankingTitle() {
+        let titleKey = 'all-rank'; // Default
+        if (currentRankingType === 'day') titleKey = 'day-rank';
+        else if (currentRankingType === 'week') titleKey = 'week-rank';
+        else if (currentRankingType === 'month') titleKey = 'month-rank';
+        else if (currentRankingType === 'query') titleKey = 'query-record';
+        
+        rankingTitleElement.textContent = I18N[titleKey] || (currentRankingType.charAt(0).toUpperCase() + currentRankingType.slice(1) + ' Ranking');
+        if (currentRankingType === 'query' && currentQuery) {
+            rankingTitleElement.textContent += `: ${currentQuery}`;
+        }
+    }
+
+
+    async function loadRanking() {
+      loadingMessageElement.style.display = 'block';
+      leaderboardElement.innerHTML = ''; // Clear previous results except loading message
+      paginationElement.innerHTML = '';
+
+      // Use the view for highest scores per player
+      let queryBuilder = supabase
+        .from('leaderboard_highest_scores') // ★★★ USING THE VIEW ★★★
+        .select('name, score, comment, created_at', { count: 'exact' });
+
+      const now = new Date();
+      if (currentRankingType === 'day') {
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        queryBuilder = queryBuilder.gte('created_at', todayStart);
+      } else if (currentRankingType === 'week') {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay() - (now.getDay() === 0 ? -6 : 1)); // Monday of current week
+        weekStart.setHours(0,0,0,0);
+        // const weekAgo = new Date(new Date().setDate(now.getDate() - 7)).toISOString(); // simpler 7 days ago
+        queryBuilder = queryBuilder.gte('created_at', weekStart.toISOString());
+      } else if (currentRankingType === 'month') {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        queryBuilder = queryBuilder.gte('created_at', monthStart);
+      } else if (currentRankingType === 'query' && currentQuery) {
+        queryBuilder = queryBuilder.ilike('name', `%${currentQuery}%`);
+      }
+      // 'all' type needs no additional date/name filter here
+
+      queryBuilder = queryBuilder.order('score', { ascending: false })
+                                 .order('created_at', { ascending: true }); // Tie-breaking: older high score ranks higher
+
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+      queryBuilder = queryBuilder.range(offset, offset + ITEMS_PER_PAGE - 1);
+      
+      try {
+        const { data, error, count } = await queryBuilder;
+        loadingMessageElement.style.display = 'none';
+
+        if (error) {
+          console.error('Ranking load error:', error);
+          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error loading ranks.'} (詳細: ${error.message})</div>`;
+          return;
+        }
+        totalItems = count || 0;
+
+        if (data.length === 0) {
+          leaderboardElement.innerHTML = `<div class="list-group-item text-center">${I18N['no-data'] || 'No data found.'}</div>`;
+        } else {
+          data.forEach((r, index) => {
+            const rank = offset + index + 1;
+            const li = document.createElement('a');
+            li.href = '#';
+            li.className = 'list-group-item list-group-item-action';
+            li.innerHTML = `
+              <div class="d-flex w-100 justify-content-between align-items-center">
+                <h5 class="mb-0">
+                  <span class="badge bg-primary rank-badge">${rank}${getRankSuffix(rank)}</span>
+                  ${r.name || (I18N['anonymous'] || 'Anonymous')}
+                </h5>
+                <small class="text-muted">${formatDate(r.created_at)}</small>
+              </div>
+              <p class="mb-1 ms-1 mt-1">SCORE: <strong>${r.score}</strong></p>
+              ${r.comment ? `<small class="text-muted ms-1 fst-italic">“${r.comment}”</small>` : ''}
+            `;
+            leaderboardElement.appendChild(li);
+          });
+        }
+        renderPagination();
+        updateRankingTitle(); // Update title after data load (especially for query)
+      } catch (e) {
+          loadingMessageElement.style.display = 'none';
+          console.error('Ranking processing error:', e);
+          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error processing ranks.'}</div>`;
+      }
+    }
+
+    function renderPagination() { /* ... (same as before, ensure MAX_PAGES_TO_SHOW is used) ... */
+        paginationElement.innerHTML = '';
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
+        if (totalPages <= 1) return;
+
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link'; prevA.href = '#'; prevA.innerHTML = '«';
+        prevA.setAttribute('aria-label', I18N['previous'] || 'Previous');
+        prevA.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; updateURL(); loadRanking(); } });
+        prevLi.appendChild(prevA);
+        paginationElement.appendChild(prevLi);
+
+        let startPage = Math.max(1, currentPage - Math.floor(MAX_PAGES_TO_SHOW / 2));
+        let endPage = Math.min(totalPages, startPage + MAX_PAGES_TO_SHOW - 1);
+        if (endPage - startPage + 1 < MAX_PAGES_TO_SHOW && totalPages >= MAX_PAGES_TO_SHOW) {
+            if (startPage === 1) endPage = Math.min(totalPages, MAX_PAGES_TO_SHOW);
+            else startPage = Math.max(1, totalPages - MAX_PAGES_TO_SHOW + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link'; a.href = '#'; a.textContent = i;
+            a.addEventListener('click', (e) => { e.preventDefault(); currentPage = i; updateURL(); loadRanking(); });
+            li.appendChild(a);
+            paginationElement.appendChild(li);
+        }
+
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link'; nextA.href = '#'; nextA.innerHTML = '»';
+        nextA.setAttribute('aria-label', I18N['next'] || 'Next');
+        nextA.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; updateURL(); loadRanking(); } });
+        nextLi.appendChild(nextA);
+        paginationElement.appendChild(nextLi);
+    }
+
+    async function loadSelfRecord() { /* ... (same, but query leaderboard_highest_scores) ... */
+      const username = cookie('username');
+      if (username) {
+        try {
+          const { data, error } = await supabase
+            .from('leaderboard_highest_scores') // Query the view
+            .select('score, created_at')
+            .eq('name', username)
+            .limit(1); // Should only be one record per name in this view
+
+          if (error) throw error;
+          if (data && data.length > 0) {
+            const record = data[0];
+            selfRecordElement.innerHTML = (I18N['self-record'] || '{name}\'s Record: Score {score} ({time})')
+              .replace('{name}', username)
+              .replace('{score}', record.score)
+              .replace('{time}', formatDate(record.created_at));
+          } else {
+            selfRecordElement.textContent = (I18N['no-self-record'] || 'No record found for {name}.').replace('{name}', username);
+          }
+        } catch (e) {
+            console.error('Self record load error:', e);
+            selfRecordElement.textContent = I18N['no-name-tip'] || 'Play the game to save your record!';
+        }
+      } else {
+        selfRecordElement.textContent = I18N['no-name-tip'] || 'Play the game to save your record!';
+      }
+    }
+    
+    function updateURL() {
+        const params = new URLSearchParams();
+        if (currentRankingType !== 'all') params.set('type', currentRankingType);
+        if (currentRankingType === 'query' && currentQuery) params.set('query', currentQuery);
+        if (currentPage > 1) params.set('page', currentPage);
+        
+        const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.pushState(null, '', newRelativePathQuery);
+    }
+
+    function parseURLParams() {
+        const params = new URLSearchParams(window.location.search);
+        currentRankingType = params.get('type') || 'all';
+        currentPage = parseInt(params.get('page')) || 1;
+        currentQuery = params.get('query') || '';
+        
+        if (currentRankingType === 'query' && currentQuery) {
+            searchInput.value = currentQuery;
+        }
+
+        navLinks.forEach(l => {
+            l.classList.remove('active');
+            if (l.dataset.type === currentRankingType) {
+                l.classList.add('active');
+            }
+        });
+         if (currentRankingType === 'query' && !document.querySelector(`.navbar-nav .nav-link[data-type="query"].active`)){
+            // No explicit "query" tab, so keep 'all' or none active
+        } else if (!document.querySelector('.navbar-nav .nav-link.active')) {
+             document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
+        }
+    }
+
+    // Event Listeners
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        currentRankingType = link.dataset.type;
+        currentPage = 1;
+        currentQuery = '';
+        searchInput.value = '';
+        updateURL();
+        loadRanking();
+        navLinks.forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      });
+    });
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const queryText = searchInput.value.trim();
+      if (queryText) {
+        currentRankingType = 'query';
+        currentQuery = queryText;
+        currentPage = 1;
+        updateURL();
+        loadRanking();
+        navLinks.forEach(l => l.classList.remove('active')); // Deactivate other tabs
+      } else { // Empty search, go to 'all'
+        currentRankingType = 'all';
+        currentQuery = '';
+        currentPage = 1;
+        updateURL();
+        loadRanking();
+        navLinks.forEach(l => l.classList.remove('active'));
+        document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
+      }
+    });
+
+    window.addEventListener('popstate', () => { // Handle browser back/forward
+        parseURLParams();
+        loadRanking();
+    });
+
+    // Initial Load
+    async function initializePage() {
+        await loadI18N(); // Load languages first
+        parseURLParams(); // Parse URL to set initial state
+        loadRanking();
+        loadSelfRecord();
+    }
+
+    initializePage();
+
+  </script>
 </body>
-
 </html>
