@@ -110,6 +110,9 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         // ゲーム要素を中央揃えするために追加したCSS
         '#gameBody {margin:0 auto; max-width:100%; position:relative;} ' +
         '#GameLayerBG {margin:0 auto; position:relative;} ' +
+        // 間違ったタイルの赤点滅アニメーション用CSS
+        '.bad {background-color: red !important; animation: badFlash 0.5s !important;} ' +
+        '@keyframes badFlash {0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;}} ' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
             '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
         '</style>');
@@ -356,7 +359,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Original logic (当たり判定)
+    function gameTapEvent(e) { // 修正: 間違ったタイルをタップしたときの処理を変更
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -391,11 +394,14 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
             tar.classList.add('bad');
+            
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // ここを修正: アニメーション表示のため遅延させてからgameOver()を呼び出す
-                setTimeout(() => { gameOver(); }, 600); // 0.6秒後にゲームオーバー処理
+                // 修正: 赤く点滅するのを見せるため、遅延させてからゲームオーバーを呼び出す
+                setTimeout(() => { 
+                    gameOver(); 
+                }, 500); // 0.5秒後にゲームオーバー処理
             }
         }
         return false;
