@@ -135,14 +135,15 @@
             </div>
         </div>
     </div>
+
     <script src="./static/index.js"></script>
 
-    <!-- Vercel Speed Insights Script -->
-    <script>
-      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    <!-- Vercel Analytics -->
+    <script type="module">
+        import { inject } from '@vercel/analytics';
+        inject();
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
-    <!-- End Vercel Speed Insights Script -->
+    <!-- End Vercel Analytics -->
 
 </body>
 </html>
