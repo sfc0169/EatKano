@@ -107,15 +107,16 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let fontunit = isDesktop ? 20 : ((window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth) / 320) * 10;
     document.write('<style type="text/css">' +
         'html,body {font-size:' + (fontunit < 30 ? fontunit : '30') + 'px;}' +
+        // ゲーム要素を中央揃えするために追加したCSS
+        '#gameBody {margin:0 auto; max-width:100%; position:relative;} ' +
+        '#GameLayerBG {margin:0 auto; position:relative;} ' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
-            '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display:none;}}') + // landscape display:none as per original for mobile
+            '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
         '</style>');
 
     let map = {'d': 1, 'f': 2, 'j': 3, 'k': 4};
     if (isDesktop) {
-        if (!document.getElementById('gameBody')) { // Only write if not exists (though init should handle this)
-             document.write('<div id="gameBody"></div>');
-        }
+        document.write('<div id="gameBody">'); // オリジナルに合わせて開始タグだけを書き込む
         document.onkeydown = function (e) {
             let key = e.key.toLowerCase();
             if (map.hasOwnProperty(key)) { // More direct check
@@ -133,11 +134,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let soundMode = getSoundMode();
 
     w.init = function() {
-        // Insert game layer HTML if not already present
-        if (!document.getElementById('GameLayerBG')) {
-            document.body.insertAdjacentHTML('afterbegin', createGameLayer());
-        }
-
+        // オリジナルコードに合わせて実装
         showWelcomeLayer();
         body = document.getElementById('gameBody') || document.body;
         body.style.height = window.innerHeight + 'px';
@@ -147,21 +144,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         transitionDuration = transform.replace(/ransform/g, 'ransitionDuration');
 
         GameTimeLayer = document.getElementById('GameTimeLayer');
-        GameLayerBG = document.getElementById('GameLayerBG'); // Should exist now
-
-        GameLayer = []; // Clear and re-populate
-        const gameLayer1 = document.getElementById('GameLayer1');
-        const gameLayer2 = document.getElementById('GameLayer2');
-
-        if (gameLayer1 && gameLayer2) {
-            GameLayer.push(gameLayer1);
-            GameLayer[0].children = gameLayer1.querySelectorAll('div.block'); // Select only .block children
-            GameLayer.push(gameLayer2);
-            GameLayer[1].children = gameLayer2.querySelectorAll('div.block');
-        } else {
-            console.error("GameLayer1 or GameLayer2 not found in init. HTML structure might be incorrect or not yet rendered.");
-            return;
-        }
+        GameLayer.push(document.getElementById('GameLayer1'));
+        GameLayer[0].children = GameLayer[0].querySelectorAll('div');
+        GameLayer.push(document.getElementById('GameLayer2'));
+        GameLayer[1].children = GameLayer[1].querySelectorAll('div');
+        GameLayerBG = document.getElementById('GameLayerBG');
 
         if (GameLayerBG) {
             if (GameLayerBG.ontouchstart === null) {
@@ -178,10 +165,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         initSetting();
         window.addEventListener('resize', refreshSize, false);
     }
-
-    // --- All other functions (getMode, getSoundMode, game logic, UI updates) ---
-    // --- are kept as close to the original as possible, with minor fixes ---
-    // --- for robustness or to align with previous discussions.        ---
 
     function getMode() { // Original
         const modeCookie = cookie('gameMode');
@@ -223,12 +206,12 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let refreshSizeTime; // Original
     function refreshSize() { clearTimeout(refreshSizeTime); refreshSizeTime = setTimeout(_refreshSize, 200); }
 
-    function _refreshSize() { // Original logic, with checks
+    function _refreshSize() { // Original logic, with fixes for original
         if (!body) body = document.getElementById('gameBody') || document.body;
         if (!body || body.offsetWidth === 0) return;
         countBlockSize();
         if (blockSize <= 0) return;
-        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) return; // Added ?. for safety
+        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) return;
 
         for (let i = 0; i < GameLayer.length; i++) {
             let box = GameLayer[i];
@@ -244,7 +227,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         else { f = GameLayer[1]; a = GameLayer[0]; }
         let y = ((_gameBBListIndex) % 10) * blockSize;
         f.y = y; f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
-        a.y = f.y - blockSize * Math.floor(f.children.length / 4); // Adjusted a.y calculation
+        a.y = -blockSize * Math.floor(f.children.length / 4) + y; // オリジナルに合わせた計算式
         a.style[transform] = 'translate3D(0,' + a.y + 'px,0)';
     }
 
@@ -333,8 +316,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             focusOnReplay();
         }, 1500);
     }
-
-    // Removed: encrypt function
 
     function createTimeText(n) { return 'TIME:' + Math.max(0, Math.ceil(n)); } // Original
 
@@ -511,7 +492,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
     }
 
-    // Removed: document.write(createGameLayer()); // Handled in w.init
+    document.write(createGameLayer()); // オリジナルに合わせて直接書き込み
 
     function initSetting() { /* Original */
         $("#username").val(cookie("username") || ""); $("#message").val(cookie("message") || "");
@@ -523,7 +504,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
         const gameTimeVal = cookie('gameTime');
         if (gameTimeVal) { const gt = parseInt(gameTimeVal); if (!isNaN(gt) && gt > 0) { $('#gameTime').val(gt); _gameSettingNum = gt; } }
-        // gameRestart(); // Called from gameInit which is called from w.init
     }
 
     w.show_btn = function() { /* Original */ $('#btn_group').css('display', 'flex'); $('#desc').css('display', 'block'); $('#setting').css('display', 'none'); }
@@ -538,8 +518,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         initSetting();
     }
     function isnull(val) { /* Original */ if (val === null || val === undefined) return true; return String(val).replace(/(^\s*)|(\s*$)/g, '') === ''; }
-
-    // Removed: w.goRank()
 
     function click(index) { /* Original logic (with target block finding adjusted) */
         if (!welcomeLayerClosed || _gameOver || _gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return;
