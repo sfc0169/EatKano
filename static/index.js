@@ -356,8 +356,10 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Original logic (当たり判定)
-        if (_gameOver) return false;
+    function gameTapEvent(e) { // Original logic (当たり判定) - ここが修正箇所！
+        if (_gameOver) {
+            return false;
+        }
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
         let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
@@ -394,8 +396,10 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // アニメーションが完了するのを待ってからゲームオーバー
-                setTimeout(() => { gameOver(); }, 500); // 0.5秒後にゲームオーバー処理を実行
+                // 修正: 点滅エフェクトを表示するために遅延を追加
+                setTimeout(() => {
+                    gameOver();
+                }, 700); // 0.7秒待ってからゲームオーバー処理
             }
         }
         return false;
