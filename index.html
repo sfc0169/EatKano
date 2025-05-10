@@ -138,8 +138,12 @@
 
     <script src="./static/index.js"></script>
 
-    <!-- Vercel Analytics をここに追加 -->
-    <script defer src="/_vercel/insights/script.js"></script>
-</body>
+    <!-- Vercel Analytics -->
+    <script type="module">
+        import { inject } from '@vercel/analytics';
+        inject();
+    </script>
+    <!-- End Vercel Analytics -->
 
+</body>
 </html>
