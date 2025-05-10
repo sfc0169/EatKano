@@ -254,10 +254,16 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         gameRestart();
     }
 
-    function gameRestart() { // Original, with checks
+    function gameRestart() { // Modified to clear bad tiles
         _gameBBList = []; _gameBBListIndex = 0; _gameScore = 0; _gameOver = false; _gameStart = false;
         _gameSettingNum = parseInt(cookie('gameTime')) || 20;
         _gameTimeNum = _gameSettingNum; _gameStartTime = 0; _date1 = null; deviationTime = 0;
+        
+        // ゲーム再開時にすべてのタイルから.badクラスを削除
+        document.querySelectorAll('.bad').forEach(el => {
+            el.classList.remove('bad');
+        });
+        
         if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) { return; }
         countBlockSize();
         if (blockSize > 0) {
@@ -356,7 +362,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Modified for clear red flashing effect
+    function gameTapEvent(e) { // Modified for faster animation
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -390,37 +396,13 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             gameLayerMoveNextRow();
         } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
-            
-            // 直接背景色を赤に設定して点滅効果を実装
-            tar.style.backgroundColor = 'rgb(211, 91, 91)';
-            
+            tar.classList.add('bad');
             if (mode === MODE_PRACTICE) {
-                // 練習モードでは点滅後に元に戻す
-                let flashCount = 0;
-                const flashInterval = setInterval(() => {
-                    flashCount++;
-                    if (flashCount >= 6) { // 3回点滅
-                        clearInterval(flashInterval);
-                        tar.style.backgroundColor = ''; // 背景色をリセット
-                        tar.style.opacity = '1'; // 不透明度をリセット
-                    } else {
-                        // 点滅効果（不透明度を切り替え）
-                        tar.style.opacity = flashCount % 2 === 0 ? '1' : '0.3';
-                    }
-                }, 150); // 150ミリ秒ごとに切り替え
+                setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // 通常/エンドレスモードでは点滅後にゲームオーバー
-                let flashCount = 0;
-                const flashInterval = setInterval(() => {
-                    flashCount++;
-                    if (flashCount >= 6) { // 3回点滅
-                        clearInterval(flashInterval);
-                        gameOver(); // 点滅後にゲームオーバー
-                    } else {
-                        // 点滅効果（不透明度を切り替え）
-                        tar.style.opacity = flashCount % 2 === 0 ? '1' : '0.3';
-                    }
-                }, 150); // 150ミリ秒ごとに切り替え
+                // アニメーションが完了するのを待ってからゲームオーバー
+                // 点滅感覚を早くするために500msから400msに変更
+                setTimeout(() => { gameOver(); }, 400); 
             }
         }
         return false;
