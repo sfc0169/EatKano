@@ -1,258 +1,43 @@
 /* static/index.css の修正案 */
-body {
+html, body {
+  height: 100%;
   font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
   margin: 0;
   padding: 0;
-  /* index.jsでフォントサイズが設定されるので、ここでは基本設定のみ */
+  overflow: hidden;
+  color: #333;
 }
 
-/* .loading クラスは現在HTMLには見当たらないが、元CSSにあったので残す */
-.loading {
-  background-image: url("data:image/gif;base64,R0lGODlhJQAlAJECAL3L2AYrTv///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgACACwAAAAAJQAlAAACi5SPqcvtDyGYIFpF690i8xUw3qJBwUlSadmcLqYmGQu6KDIeM13beGzYWWy3DlB4IYaMk+Dso2RWkFCfLPcRvFbZxFLUDTt21BW56TyjRep1e20+i+eYMR145W2eefj+6VFmgTQi+ECVY8iGxcg35phGo/iDFwlTyXWphwlm1imGRdcnuqhHeop6UAAAIfkEBQoAAgAsEAACAAQACwAAAgWMj6nLXAAh+QQFCgACACwVAAUACgALAAACFZQvgRi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwXABEADAADAAACBYyPqcsFACH5BAUKAAIALBUAFQAKAAsAAAITlGKZwWoMHYxqtmplxlNT7ixGAQAh+QQFCgACACwQABgABAALAAACBYyPqctcACH5BAUKAAIALAUAFQAKAAsAAAIVlC+BGL3Z3IlxUmUuhtR2LzHhsiEFACH5BAUKAAIALAEAEQAMAAMAAAIFjI+pywUAIfkEBQoAAgAsBQAFAAoACwAAAhOUYJnAagwdjGq2amXGU1PuLEYBACH5BAUKAAIALBAAAgAEAAsAAAIFhI+py1wAIfkEBQoAAgAsFQAFAAoACwAAAhWUL4AIvdnciXFSZS6G1HYvMeGyIQUAIfkEBQoAAgAsFwARAAwAAwAAAgWEj6nLBQAh+QQFCgACACwVABUACgALAAACE5RgmcBqDB2MarZqZcZTU+4sRgEAIfkEBQoAAgAsEAAYAAQACwAAAgWEj6nLXAAh+QQFCgACACwFABUACgALAAACFZQvgAi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwBABEADAADAAACBYSPqcsFADs=");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: auto 60%;
-}
-
-/* .start_btn はHTMLでBootstrapの .btn を使っているので、ここでは不要か、特定の上書きのみ */
-/*
-.start_btn {
-  display: inline-block;
-  margin: 0 auto;
-  width: 8em;
-  height: 1.7em;
-  line-height: 1.7em;
-  font-size: 2.2em;
-  color: #fff;
-}
-*/
-
-.SHADE { /* index.jsで position: absolute/fixed が設定される想定 */
+.SHADE {
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  bottom: 0;
-  z-index: 11; /* ゲームレイヤーより手前に来るように */
-}
-
-/* 古いFlexboxの .BOX-* 系はBootstrapと競合するため削除またはコメントアウト */
-/* .BOX-V, .BOX-D, .BOX-M, .BOX-S, .BOX, .FOOTER (古いFlexbox関連) は削除 */
-
-.BBOX { /* box-sizing はBootstrapでも設定されているので、重複を避けるか確認 */
-  box-sizing: border-box;
+  height: 100%;
+  z-index: 1000;
+  overflow: hidden;
 }
 
 #welcome {
-  background-color: rgba(0, 0, 0, .85); /* 少し濃くして文字を見やすく */
+  background-color: rgba(0, 0, 0, .88);
   text-align: center;
   font-weight: bold;
-  overflow: hidden;
-  display: none; /* 初期は非表示、index.jsで表示 */
-  color: white; /* 基本の文字色 */
+  display: none;
+  color: white;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .welcome-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* 理想のレイアウトに合わせて背景画像を設定してください */
-  /* 例: background-image: url('./static/image/kano_welcome_bg.png'); */
-  background-color: #333; /* 画像がない場合のフォールバック */
-  background-size: contain; /* または cover, auto など適切に */
+  background-size: contain;
   background-repeat: no-repeat;
   background-position: center center;
-  opacity: .3; /* 元のCSSの値を尊重 */
-  overflow: hidden;
-  z-index: -1; /* テキストより後ろに */
+  opacity: .25;
+  z-index: -1;
+  /* 実際の画像パスに置き換えてください */
+  background-image: url('./image/ClickBefore.png'); /* 仮でタイル画像を指定 */
 }
 
-#GameTimeLayer {
-  /* index.jsで position: absolute/fixed が設定される想定 */
-  top: 1em;
-  left: 0;
-  width: 100%;
-  text-align: center;
-  color: rgb(233, 138, 131);
-  font-size: 3.5em; /* 少し調整 */
-  text-shadow: 0 0 2px #fff, 0 0 2px #fff; /* 少し調整 */
-  overflow: hidden;
-  z-index: 12; /* ゲームレイヤーより手前 */
-}
-
-#GameLayerBG {
-  /* index.jsで position: absolute/fixed が設定される想定 */
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  background: #2c2c2c; /* 理想のレイアウトに近い暗めの背景色 */
-  /* グリッド線は .block の border で表現される */
-}
-
-.GameLayer {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  /* width と height はJSで設定される想定 */
-}
-
-.block {
-  position: absolute;
-  border-top: 1px solid #4a4a4a; /* グリッド線の色を調整 */
-  background-repeat: no-repeat;
-  background-position: center;
-  box-sizing: border-box; /* サイズ計算に影響するため追加 */
-}
-
-/* タイル画像のパスを確認・修正 */
-/* staticフォルダ基準なので、CSSファイルからの相対パスは ../image/ となるか、
-   HTMLからのパスを基準に /static/image/ とするか、サーバー設定によります。
-   ここではHTMLからの絶対パスに近い形で指定してみます。
-   Vercelなどではルートからのパスで解決されることが多いです。
-*/
-.t1,
-.t2,
-.t3,
-.t4,
-.t5 {
-  background-size: contain; /* contain でアスペクト比を保ちつつ収める */
-  background-image: url('/static/image/ClickBefore.png'); /* パス修正の試み */
-}
-
-.tt1,
-.tt2,
-.tt3,
-.tt4,
-.tt5 {
-  background-size: contain; /* contain でアスペクト比を保ちつつ収める */
-  background-image: url('/static/image/ClickAfter.png'); /* パス修正の試み */
-}
-
-.bl { /* 左の境界線 */
-  border-left: 1px solid #4a4a4a; /* グリッド線の色を調整 */
-}
-
-/* flash アニメーションは変更なし */
-@-ms-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-@-webkit-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-.flash { -webkit-animation: flash .2s 3; animation: flash .2s 3; }
-
-.bad { /* ミスタップ時のスタイル */
-  background-color: rgba(211, 91, 91, 0.8); /* 少し透過させる */
-  -webkit-animation: flash .2s 3;
-  animation: flash .2s 3;
-}
-
-/* タップハイライトとユーザー選択の無効化は変更なし */
-* { /* 全要素に適用するのは強力すぎるので、必要な要素に限定した方が良い場合も */
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  -ms-tap-highlight-color: rgba(0, 0, 0, 0);
-  /* -ms-user-select: none; user-select: none; は必要な箇所に */
-}
-
-#GameScoreLayer {
-  /* index.jsで position: absolute/fixed が設定される想定 */
-  padding-top: 2em;
-  font-size: 1.8em; /* 少し調整 */
-  font-weight: bold;
-  color: #fff; /* 背景が暗いことを想定して白文字に */
-  text-align: center;
-  overflow: hidden;
-  background-color: rgba(0, 0, 0, 0.75); /* 背景を追加 */
-  display: none; /* 初期は非表示 */
-}
-
-/* .share-icon はHTMLに見当たらないためコメントアウト */
-/*
-.share-icon {
-  width: 1.7em;
-  background-repeat: no-repeat;
-  background-size: auto 100%;
-}
-*/
-
-/* #GameScoreLayer-btn, #GameScoreLayer-share はHTMLに見当たらないためコメントアウト */
-/*
-#GameScoreLayer-btn .btn,
-#GameScoreLayer-share .btn {
-  text-align: center;
-  font-size: 1.1em;
-  color: rgba(0, 0, 0, 0.3);
-  height: 2em;
-  line-height: 2em;
-}
-*/
-
-/* .btn:active はBootstrap側で処理されることが多いので、必要なら調整 */
-/*
-.btn:active {
-  opacity: 0.2;
-}
-*/
-
-/* #landscape はHTMLに見当たらないためコメントアウト */
-/*
-#landscape {
-  display: none;
-}
-*/
-
-#gameBody { /* isDesktop の場合にJSで挿入される想定 */
-  position: relative;
-  width: 100%; /* レスポンシブにするため、固定幅を削除または調整 */
-  max-width: 640px; /* 最大幅は維持 */
-  margin: 0 auto;
-  overflow: hidden; /* ゲームレイヤーがはみ出さないように */
-}
-
-/* #share-wx はHTMLに見当たらないためコメントアウト */
-/*
-#share-wx {
-  background: rgba(0, 0, 0, 0.8);
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 10000;
-  display: none;
-}
-*/
-
-/* #btn_group と #setting の幅はHTMLでBootstrapの w-100 やコンテナを使っているので、
-   CSSでの固定的な幅指定は削除し、max-width での調整に留めるか、Bootstrapに任せる。
-   元のCSSのメディアクエリはHTMLの構造と合わない可能性が高い。
-*/
-#btn_group, #setting {
-  margin-left: auto;
-  margin-right: auto;
-}
-#btn_group {
-   max-width: 220px; /* 適宜調整 */
-}
-#setting {
-   max-width: 400px; /* 適宜調整 */
-}
-
-
-/* #GameScoreLayer の col-* はBootstrapのグリッドが使われているなら、
-   ここでの max-width 指定は不要か、Bootstrapの挙動を上書きしないように注意。
-   index.html で `col-3`, `col-2` が使われているので、
-   Bootstrapの `col-*` の幅に依存させる。
-*/
-/*
-#GameScoreLayer .col-3, #GameScoreLayer .col-2 {
-  max-width: 144px;
-}
-*/
-
-.dropdown-item {
-  cursor: pointer;
-}
-
-/* FILLクラスがHTMLに存在すれば、そのスタイルを定義 */
 .FILL {
   position: absolute;
   top: 0;
@@ -261,31 +46,113 @@ body {
   height: 100%;
 }
 
-/* HTMLで .welcome-bg に FILL クラスが使われているので、
-   .welcome-bg の position: absolute; は FILL でカバーされる。
-   重複する可能性のあるスタイルを整理。 */
-.welcome-bg {
-  /* position: absolute; は .FILL で定義 */
-  /* top: 0; left: 0; right: 0; bottom: 0; も .FILL で定義 */
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center center;
-  opacity: .3;
-  overflow: hidden;
-  z-index: -1;
-  /* 理想の画像パスに置き換えてください */
-  background-image: url('/static/image/kano_welcome_bg_placeholder.png'); /* 仮のパス */
+
+#GameTimeLayer {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  padding: 5px 15px;
+  background-color: rgba(0,0,0,0.3); /* 少し薄く */
+  border-radius: 8px;
+  text-align: center;
+  color: rgb(233, 138, 131); /* 元の指定に戻してみる */
+  font-size: 2.8em; /* HTMLでの指定に合わせて調整 */
+  font-weight: bold;
+  text-shadow: 0 0 2px #fff, 0 0 3px #fff; /* 元の指定に戻してみる */
+  z-index: 1050;
 }
 
+#GameLayerBG { /* ゲームのメイン背景 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #ffffff; /* ★★★ 背景を白に戻す ★★★ */
+  z-index: 10;
+}
 
-/* ゲーム画面のタイル画像パスの修正 */
-/* CSSファイルが static/index.css だとすると、画像フォルダへのパスは ./image/ になる */
-.t1, .t2, .t3, .t4, .t5 {
+.GameLayer {
+  position: absolute;
+}
+
+.block {
+  position: absolute;
+  border-top: 1px solid #b8dfe6; /* ★★★ グリッド線の色を元の明るい色に戻す ★★★ */
+  background-repeat: no-repeat;
+  background-position: center;
+  box-sizing: border-box;
   background-size: contain;
+  /* タイルの背景色は基本的には画像で表現されるが、念のため透明か白を指定 */
+  background-color: transparent; /* または #fff; */
+}
+
+.t1, .t2, .t3, .t4, .t5 {
   background-image: url('./image/ClickBefore.png');
 }
 
 .tt1, .tt2, .tt3, .tt4, .tt5 {
-  background-size: contain;
   background-image: url('./image/ClickAfter.png');
+}
+
+.bl { /* 左の境界線 */
+  border-left: 1px solid #b8dfe6; /* ★★★ グリッド線の色を元の明るい色に戻す ★★★ */
+}
+
+/* flash アニメーション */
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.flash {
+  animation: flash .15s 3;
+}
+
+.bad {
+  background-color: rgba(211, 91, 91, 0.85); /* ミスタップ時の色、元のCSSに近い色 */
+  animation: flash .15s 2;
+}
+
+/* タップハイライト無効化 */
+body, button, a {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -ms-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+#GameScoreLayer {
+  position: fixed;
+  color: #fff; /* スコアレイヤーの文字色は白のまま */
+  text-align: center;
+  display: none;
+  z-index: 1100;
+  padding: 20px;
+  box-sizing: border-box;
+}
+#GameScoreLayer > div {
+    max-width: 450px;
+    margin-left: auto;
+    margin-right: auto;
+    /* スコアレイヤーの背景はHTML側で rgba(40, 40, 60, 0.85) が設定されている */
+}
+
+
+#gameBody {
+  position: relative;
+  max-width: 640px;
+  margin: 0 auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  cursor: pointer;
+}
+.input-group-text {
+    font-size: 0.9em;
+}
+#setting input.form-control {
+    font-size: 0.9em;
 }
