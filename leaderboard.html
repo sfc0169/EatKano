@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>EatKano ランキング</title>
+  <style>
+    body { max-width:600px; margin:2rem auto; font-family:sans-serif; }
+    h1 { text-align:center; }
+    ol { list-style:none; padding:0; }
+    li { display:flex; justify-content:space-between; padding:0.5rem; border-bottom:1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>EatKano ランキング</h1>
+  <ol id="leaderboard"></ol>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabase = createClient(
+      'https://pazuftgivpsfqekecfvt.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'
+    );
+    async function loadRanking() {
+      const { data, error } = await supabase
+        .from('leaderboard')
+        .select('name,score,comment')
+        .order('score',{ascending:false});
+      if (error) return console.error(error);
+      const ol = document.getElementById('leaderboard');
+      ol.innerHTML = '';
+      data.forEach((r,i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${i+1}. ${r.name} — ${r.score}</span>
+                        <small>${r.comment||''}</small>`;
+        ol.appendChild(li);
+      });
+    }
+    loadRanking();
+  </script>
+</body>
+</html>
