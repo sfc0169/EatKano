@@ -1,410 +1,414 @@
 <!DOCTYPE html>
-<html lang="ja">
+<!-- lang属性はJSで設定 -->
+<html>
 <head>
-  <title>EatKano ランキング</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { padding-top: 56px; /* Navbar height */ } /* Navbarがfixed-topの場合 */
-    .list-group-item small:first-of-type { /* 日付用のsmallタグ */
-        color: #6c757d;
-    }
-    .list-group-item p {
-        font-size: 0.9rem;
-        color: #495057;
-    }
-    .rank-badge {
-        font-size: 0.8rem;
-        margin-right: 0.5rem;
-        padding: 0.3em 0.6em;
-    }
-    #leaderboard .list-group-item {
-        padding: 0.75rem 1.25rem;
-    }
-    .footer-record {
-        padding:0.5em 1em;
-        background-color: #f8f9fa; /* bg-light */
-        border-top: 1px solid #dee2e6;
-    }
-  </style>
+    <title id="pageTitle">ランキング</title> <!-- JSで動的に変更 -->
+    <meta item="description" content="EatKano Ranking" /> <!-- 適切な説明に変更 -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.staticfile.org/jquery/3.6.0/jquery.min.js"></script> <!-- jQueryは元のコードに合わせて残す -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { padding-top: 70px; /* Navbarの高さに応じて調整 */ }
+        .footer-record { padding:0.5em 1em; background-color: #f8f9fa; border-top: 1px solid #dee2e6; font-size: 0.9rem;}
+        /* 必要に応じて元のrank.phpにあった他のスタイルを追加 */
+        .rank-badge { font-size: 0.8rem; margin-right: 0.5rem; padding: 0.3em 0.6em; }
+        #leaderboard .list-group-item h5 { font-size: 1.1rem; }
+        #leaderboard .list-group-item small:first-of-type { font-size: 0.75rem; } /* 日付用 */
+        #leaderboard .list-group-item p { font-size: 0.85rem; margin-bottom: 0.3rem !important;}
+        #leaderboard .list-group-item small.text-muted {font-size: 0.8rem;} /* コメント用 */
+        .pagination .page-link { font-size: 0.9rem; }
+        .navbar-nav .nav-link.active { font-weight: bold; }
+    </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-    <div class="container">
-      <a class="navbar-brand" href="./">EatKano</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link active" href="#" data-type="all">総合ランキング</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" data-type="day">デイリー</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" data-type="week">ウィークリー</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#" data-type="month">マンスリー</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="https://github.com/arcxingye/EatKano/" target="_blank">ソースコード</a>
-          </li>
-        </ul>
-        <form class="d-flex text-nowrap" id="searchForm">
-          <input class="form-control me-2" id="searchInput" placeholder="名前で検索...">
-          <button class="btn btn-outline-success" type="submit">検索</button>
-        </form>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container mt-4" style="max-width:720px;">
-    <div class="page-header text-center">
-      <br />
-      <h1 id="rankingTitle">総合ランキング</h1><br />
-    </div>
-    <div id="leaderboard" class="list-group">
-      <!-- ランキングデータはここに挿入されます -->
-    </div>
-    <nav aria-label="Page navigation" class="mt-3">
-      <ul class="pagination justify-content-center" id="pagination">
-        <!-- ページネーションはここに挿入されます -->
-      </ul>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="./" data-i18n="navbar-brand">EatKano</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="?type=all" data-type="all" data-i18n="all-ranking">総合</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?type=day" data-type="day" data-i18n="daily-ranking">デイリー</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?type=week" data-type="week" data-i18n="weekly-ranking">ウィークリー</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?type=month" data-type="month" data-i18n="monthly-ranking">マンスリー</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://github.com/arcxingye/EatKano/" target="_blank" data-i18n="source-code">ソースコード</a>
+                    </li>
+                </ul>
+                <form class="d-flex text-nowrap" id="searchForm">
+                    <input class="form-control me-2" id="searchInput" data-placeholder-i18n="query-input" placeholder="名前で検索...">
+                    <button class="btn btn-outline-success" type="submit" data-i18n="search-btn">検索</button>
+                </form>
+            </div>
+        </div>
     </nav>
-  </div>
 
-  <footer class='fixed-bottom container' style='max-width:720px; margin: 0 auto;'>
-    <div class='row shadow rounded bg-light'>
-      <div id="selfRecord" class="footer-record text-center">
-        <!-- 自己ベスト記録はここに挿入されます -->
-      </div>
+    <div class="container mt-4" style="max-width:720px;"> <!-- 元のPHPと同じmax-width -->
+        <div class="page-header text-center">
+            <br />
+            <h1 id="rankingTitle" data-i18n="all-rank">総合ランキング</h1><br /> <!-- 初期値、JSで更新 -->
+        </div>
+        <div id="leaderboard" class="list-group shadow-sm">
+            <div class="list-group-item text-center" id="loadingMessage" data-i18n="loading">読み込み中...</div>
+            <!-- ランキングデータはJSでここに挿入 -->
+        </div>
+        <nav aria-label="Page navigation" class="mt-4 mb-5">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- ページネーションはJSでここに挿入 -->
+            </ul>
+        </nav>
     </div>
-  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.staticfile.org/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co/'; // 提供されたURLに修正
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // 提供されたキーに修正
+    <footer class='fixed-bottom container footer-record' style='max-width:720px; margin:0 auto;'> <!-- 元のPHPと同じmax-width -->
+        <div class='text-center' id="selfRecord">
+            <!-- 自己ベスト記録はJSでここに挿入 -->
+        </div>
+    </footer>
+
+<script>
+    // ─── Supabase Client Initialization ───
+    const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co/';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
     const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ─── End of Supabase Client Initialization ───
 
-    const ITEMS_PER_PAGE = 10;
+    let I18N = {}; // 国際化文字列
+    const ITEMS_PER_PAGE = 10; // 元のPHPの $num
+    const MAX_PAGES_TO_SHOW = 9; // 元のPHPの $max_pages
     let currentPage = 1;
-    let currentRankingType = 'all'; // 'all', 'day', 'week', 'month', 'query'
+    let currentRankingType = 'all';
     let currentQuery = '';
     let totalItems = 0;
 
-    // 国際化用文字列 (簡易版)
-    const i18n = {
-      'all-rank': '総合ランキング',
-      'day-rank': 'デイリーランキング',
-      'week-rank': 'ウィークリーランキング',
-      'month-rank': 'マンスリーランキング',
-      'query-record': '検索結果',
-      'no-data': '該当するデータがありません。',
-      'self-record': '{name}さんの記録: スコア {score} ( {time} )',
-      'no-self-record': '{name}さんの記録は見つかりませんでした。',
-      'no-name-tip': 'ゲームをプレイしてあなたの名前を記録に残そう！',
-      'error-loading': 'ランキングの読み込みに失敗しました。'
-    };
+    // DOM Elements
+    const leaderboardEl = document.getElementById('leaderboard');
+    const paginationEl = document.getElementById('pagination');
+    const rankingTitleEl = document.getElementById('rankingTitle');
+    const searchFormEl = document.getElementById('searchForm');
+    const searchInputEl = document.getElementById('searchInput');
+    const selfRecordEl = document.getElementById('selfRecord');
+    const navLinkEls = document.querySelectorAll('.navbar-nav .nav-link[data-type]');
+    const loadingMsgEl = document.getElementById('loadingMessage');
+    const pageTitleEl = document.getElementById('pageTitle');
 
-    const leaderboardElement = document.getElementById('leaderboard');
-    const paginationElement = document.getElementById('pagination');
-    const rankingTitleElement = document.getElementById('rankingTitle');
-    const searchForm = document.getElementById('searchForm');
-    const searchInput = document.getElementById('searchInput');
-    const selfRecordElement = document.getElementById('selfRecord');
-    const navLinks = document.querySelectorAll('.navbar-nav .nav-link[data-type]');
-
-    function formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-    }
-
-    function getRankSuffix(rank) {
-        if (rank % 100 >= 11 && rank % 100 <= 13) return 'th';
-        switch (rank % 10) {
-            case 1: return 'st';
-            case 2: return 'nd';
-            case 3: return 'rd';
-            default: return 'th';
-        }
-    }
-    
-    function cookie(name, value, time) {
-        function toStr(obj) {
-            if (typeof obj === 'object') {
-                return JSON.stringify(obj);
-            } else {
-                return obj;
-            }
-        }
+    // --- Helper Functions (cookie, formatDate, getRankSuffix - 前回のものを流用) ---
+    function cookie(name, value, timeInDays) { /* ... (前回のcookie関数) ... */
+        function toStr(obj) { if (typeof obj === 'object') { try { return JSON.stringify(obj); } catch(e){ return String(obj);}} return String(obj); }
         if (name) {
-            if (value !== undefined) { // valueが指定された場合（設定）
-                if (time) {
-                    let date = new Date();
-                    date.setTime(date.getTime() + 864e5 * time);
-                    time = date.toGMTString();
-                }
-                return document.cookie = name + "=" + escape(toStr(value)) + (time ? "; expires=" + time + "; path=/" : "; path=/"), true;
-            }
-            // valueが指定されない場合（取得）
-            let v = document.cookie.match("(?:^|;)\\s*" + name.replace(/([-.*+?^${}()|[\]\/\\])/g, "\\$1") + "=([^;]*)");
-            v = v && "string" == typeof v[1] ? unescape(v[1]) : false;
-            if (v && (/^(\{|\[).+\}|\]$/.test(v) || /^[0-9]+$/g.test(v))) {
-                try {
-                    eval("v=" + v);
-                } catch (e) { /* evalエラーは無視 */ }
-            }
-            return v;
-        }
-        // nameが指定されない場合（すべて取得）
-        let data = {};
-        value = document.cookie.replace(/\s/g, "").split(";");
-        for (let i = 0; value.length > i; i++) {
-            name = value[i].split("=");
-            if (name[1]) {
-                try {
-                    data[name[0]] = unescape(name[1]);
-                } catch (e) {
-                    data[name[0]] = name[1]; // unescapeエラーの場合、元の値を保持
-                }
+            if (value !== undefined) {
+                let expires = ""; if (timeInDays) { let date = new Date(); date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000)); expires = "; expires=" + date.toUTCString(); }
+                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/"; return true;
+            } else {
+                let nameEQ = name + "="; let ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) {
+                        let valStr = unescape(c.substring(nameEQ.length, c.length));
+                        try { if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr); if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr); } catch (e) {}
+                        return valStr;
+                    }
+                } return null;
             }
         }
-        return data;
+        let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
+    }
+    function formatDate(dateString) { /* ... (前回のformatDate関数) ... */
+        if (!dateString) return ''; const date = new Date(dateString);
+        return date.toLocaleString((I18N && I18N.lang && I18N.lang !== 'en' ? I18N.lang + '-JP' : 'ja-JP'), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    }
+    function getRankSuffix(rank) { /* ... (前回のgetRankSuffix関数) ... */
+        if (rank % 100 >= 11 && rank % 100 <= 13) return 'th';
+        switch (rank % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
     }
 
-
-    async function loadRanking() {
-      leaderboardElement.innerHTML = `<div class="list-group-item text-center">読み込み中...</div>`;
-      paginationElement.innerHTML = '';
-
-      let query = supabase
-        .from('leaderboard')
-        .select('name, score, comment, created_at', { count: 'exact' }); // count: 'exact' で総件数を取得
-
-      // ランキング種別によるフィルタ
-      const now = new Date();
-      if (currentRankingType === 'day') {
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-        query = query.gte('created_at', todayStart);
-        rankingTitleElement.textContent = i18n['day-rank'];
-      } else if (currentRankingType === 'week') {
-        const weekAgo = new Date(new Date().setDate(now.getDate() - 7)).toISOString(); // 常に現在から7日前を計算
-        query = query.gte('created_at', weekAgo);
-        rankingTitleElement.textContent = i18n['week-rank'];
-      } else if (currentRankingType === 'month') {
-        const monthAgo = new Date(new Date().setMonth(now.getMonth() - 1)).toISOString(); // 常に現在から1ヶ月前を計算
-        query = query.gte('created_at', monthAgo);
-        rankingTitleElement.textContent = i18n['month-rank'];
-      } else if (currentRankingType === 'query' && currentQuery) {
-        query = query.ilike('name', `%${currentQuery}%`); // ilikeで大文字小文字を区別しない検索
-        rankingTitleElement.textContent = i18n['query-record'] + `: ${currentQuery}`;
-      } else { // all
-        rankingTitleElement.textContent = i18n['all-rank'];
-      }
-
-      // スコアで降順ソート
-      query = query.order('score', { ascending: false });
-
-      // ページネーション
-      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-      query = query.range(offset, offset + ITEMS_PER_PAGE - 1);
-      
-      try {
-        const { data, error, count } = await query;
-
-        if (error) {
-          console.error('ランキング読み込みエラー:', error);
-          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${i18n['error-loading']} (詳細: ${error.message})</div>`;
-          return;
+    // --- Internationalization ---
+    async function loadAndApplyI18N() {
+        const LANGUAGES = [ { regex: /^zh\b/, lang: 'zh' }, { regex: /^ja\b/, lang: 'ja' }, { regex: /.*/, lang: 'en'} ];
+        const detectedLang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en';
+        try {
+            const response = await fetch(`./static/i18n/${detectedLang}.json`);
+            if (!response.ok) throw new Error(`Failed to load ${detectedLang}.json`);
+            I18N = await response.json();
+        } catch (error) {
+            console.warn(error.message + " Falling back to English.");
+            try {
+                const response = await fetch(`./static/i18n/en.json`);
+                if (!response.ok) throw new Error('Failed to load en.json');
+                I18N = await response.json();
+            } catch (fallbackError) {
+                console.error(fallbackError.message); I18N = {};
+            }
         }
-
-        totalItems = count || 0; // 総件数を更新
-
-        if (data.length === 0) {
-          leaderboardElement.innerHTML = `<div class="list-group-item text-center">${i18n['no-data']}</div>`;
-        } else {
-          leaderboardElement.innerHTML = ''; // 前のデータをクリア
-          data.forEach((r, index) => {
-            const rank = offset + index + 1;
-            const li = document.createElement('a');
-            li.href = '#'; // クリックイベントは特に設定しない
-            li.className = 'list-group-item list-group-item-action';
-            // PHP版のスタイルに近づける
-            li.innerHTML = `
-              <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">
-                  <span class="badge bg-primary rank-badge">${rank}${getRankSuffix(rank)}</span>
-                  ${r.name || '名無し'}
-                </h5>
-                <small>${formatDate(r.created_at)}</small>
-              </div>
-              <p class="mb-1 ms-1">SCORE: <strong>${r.score}</strong></p>
-              ${r.comment ? `<small class="text-muted ms-1">コメント: ${r.comment}</small>` : ''}
-            `;
-            leaderboardElement.appendChild(li);
-          });
-        }
-        renderPagination();
-      } catch (e) {
-          console.error('ランキング処理エラー:', e);
-          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${i18n['error-loading']}</div>`;
-      }
-    }
-
-    function renderPagination() {
-      paginationElement.innerHTML = '';
-      const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-
-      if (totalPages <= 1) return;
-
-      // Previous button
-      const prevLi = document.createElement('li');
-      prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-      const prevA = document.createElement('a');
-      prevA.className = 'page-link';
-      prevA.href = '#';
-      prevA.innerHTML = '«';
-      prevA.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentPage > 1) {
-          currentPage--;
-          loadRanking();
-        }
-      });
-      prevLi.appendChild(prevA);
-      paginationElement.appendChild(prevLi);
-
-      // Page numbers
-      // PHP版の max_pages (9) のような制限を設ける場合
-      const maxPagesToShow = 9;
-      let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-      let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-      
-      if (endPage - startPage + 1 < maxPagesToShow && totalPages >= maxPagesToShow) {
-          if (startPage === 1) {
-              endPage = Math.min(totalPages, maxPagesToShow);
-          } else {
-              startPage = Math.max(1, totalPages - maxPagesToShow + 1);
-          }
-      }
-
-
-      for (let i = startPage; i <= endPage; i++) {
-        const li = document.createElement('li');
-        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-        const a = document.createElement('a');
-        a.className = 'page-link';
-        a.href = '#';
-        a.textContent = i;
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          currentPage = i;
-          loadRanking();
+        // Apply texts
+        if (!I18N) return;
+        document.documentElement.lang = I18N['lang'] || 'en';
+        pageTitleEl.textContent = I18N['rank-title'] || 'Ranking';
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            if (I18N[key] !== undefined) el.textContent = I18N[key];
         });
-        li.appendChild(a);
-        paginationElement.appendChild(li);
-      }
-
-      // Next button
-      const nextLi = document.createElement('li');
-      nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-      const nextA = document.createElement('a');
-      nextA.className = 'page-link';
-      nextA.href = '#';
-      nextA.innerHTML = '»';
-      nextA.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (currentPage < totalPages) {
-          currentPage++;
-          loadRanking();
-        }
-      });
-      nextLi.appendChild(nextA);
-      paginationElement.appendChild(nextLi);
+        document.querySelectorAll('[data-placeholder-i18n]').forEach(el => {
+            const key = el.dataset.placeholderI18n;
+            if (I18N[key] !== undefined) el.placeholder = I18N[key];
+        });
+        updateRankingTitleElement(); // Update dynamic title
     }
 
-    async function loadSelfRecord() {
-      const username = cookie('username'); // index.js と同じcookie関数を利用
+    function updateRankingTitleElement() {
+        let titleKey = `${currentRankingType}-rank`;
+        if (currentRankingType === 'query') titleKey = 'query-record';
+        else if (currentRankingType === 'all') titleKey = 'all-rank'; // Ensure "all-rank" key exists or use default
+
+        rankingTitleEl.textContent = I18N[titleKey] || (currentRankingType.charAt(0).toUpperCase() + currentRankingType.slice(1) + ' Ranking');
+        if (currentRankingType === 'query' && currentQuery) {
+            rankingTitleEl.textContent += `: ${currentQuery}`;
+        }
+    }
+
+    // --- Ranking Logic ---
+    async function fetchRankingData() {
+        if (loadingMsgEl) loadingMsgEl.style.display = 'block';
+        leaderboardEl.innerHTML = ''; // Clear previous results
+        if (loadingMsgEl) leaderboardEl.appendChild(loadingMsgEl); // Re-add loading message if it was cleared
+        paginationEl.innerHTML = '';
+
+        // Using the view for highest scores per player
+        let query = supabase.from('leaderboard_highest_scores'); // ★★★ Ensure this view exists ★★★
+
+        // Base select
+        query = query.select('name, score, comment, created_at', { count: 'exact' });
+
+        // Filters based on currentRankingType
+        const now = new Date();
+        if (currentRankingType === 'day') {
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+            query = query.gte('created_at', todayStart);
+        } else if (currentRankingType === 'week') {
+            // Monday of the current week as start (more aligned with typical weekly rankings)
+            const dayOfWeek = now.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+            const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+            const weekStart = new Date(now.setDate(diff));
+            weekStart.setHours(0, 0, 0, 0);
+            query = query.gte('created_at', weekStart.toISOString());
+        } else if (currentRankingType === 'month') {
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            query = query.gte('created_at', monthStart);
+        } else if (currentRankingType === 'query' && currentQuery) {
+            query = query.ilike('name', `%${currentQuery}%`);
+        }
+        // 'all' type has no additional date/name filter here for the view itself
+
+        // Ordering and Pagination
+        query = query.order('score', { ascending: false })
+                     .order('created_at', { ascending: true }); // Tie-breaking
+
+        const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+        query = query.range(offset, offset + ITEMS_PER_PAGE - 1);
+      
+        try {
+            const { data, error, count } = await query;
+            if (loadingMsgEl) loadingMsgEl.style.display = 'none';
+
+            if (error) {
+                console.error('Ranking load error:', error);
+                leaderboardEl.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error loading ranks.'} (Error: ${error.message})</div>`;
+                return;
+            }
+            totalItems = count || 0;
+
+            if (data.length === 0) {
+                leaderboardEl.innerHTML = `<div class="list-group-item text-center p-5">${I18N['no-data'] || 'No data found.'}</div>`;
+            } else {
+                leaderboardEl.innerHTML = ''; // Clear loading message if not already done
+                data.forEach((r, index) => {
+                    const rank = offset + index + 1;
+                    const li = document.createElement('a');
+                    li.href = '#'; // Non-interactive link
+                    li.className = 'list-group-item list-group-item-action';
+                    // Mimic PHP output structure
+                    li.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <span class="badge bg-primary rank-badge">${rank}${getRankSuffix(rank)}</span>
+                                ${r.name || (I18N['anonymous'] || 'Anonymous')}
+                            </h5>
+                            <small class="text-muted">${formatDate(r.created_at)}</small>
+                        </div>
+                        <p class="mb-1 ms-1 mt-1">SCORE: <strong>${r.score}</strong></p>
+                        ${r.comment ? `<small class="text-muted ms-1 fst-italic">“${r.comment.length > 50 ? r.comment.substring(0, 50) + '...' : r.comment}”</small>` : `<small class="text-muted ms-1 fst-italic">${I18N['no-message'] || 'No message'}</small>`}
+                    `;
+                    // Original PHP also showed attempts, system, area. If needed, add to view and here.
+                    leaderboardEl.appendChild(li);
+                });
+            }
+            renderPaginationUI();
+            updateRankingTitleElement();
+        } catch (e) {
+            if (loadingMsgEl) loadingMsgEl.style.display = 'none';
+            console.error('Ranking processing error:', e);
+            leaderboardEl.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error processing ranks.'}</div>`;
+        }
+    }
+
+    function renderPaginationUI() { /* ... (same as before, using MAX_PAGES_TO_SHOW) ... */
+        paginationEl.innerHTML = '';
+        const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+        if (totalPages <= 1) return;
+
+        const createPageItem = (text, pageNum, isDisabled = false, isActive = false, isRel = false) => {
+            const li = document.createElement('li');
+            li.className = `page-item ${isDisabled ? 'disabled' : ''} ${isActive ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link'; a.href = '#';
+            a.innerHTML = text; // Use innerHTML for « »
+            if(isRel) a.setAttribute('rel', text === '«' ? 'prev' : 'next');
+            if (!isDisabled) {
+                a.addEventListener('click', (e) => { e.preventDefault(); currentPage = pageNum; updateUserURL(); fetchRankingData(); });
+            }
+            li.appendChild(a);
+            return li;
+        };
+
+        paginationEl.appendChild(createPageItem('«', currentPage - 1, currentPage === 1, false, true));
+        let startPage = Math.max(1, currentPage - Math.floor(MAX_PAGES_TO_SHOW / 2));
+        let endPage = Math.min(totalPages, startPage + MAX_PAGES_TO_SHOW - 1);
+        if (endPage - startPage + 1 < MAX_PAGES_TO_SHOW && totalPages >= MAX_PAGES_TO_SHOW) {
+            if (startPage === 1) endPage = Math.min(totalPages, MAX_PAGES_TO_SHOW);
+            else startPage = Math.max(1, totalPages - MAX_PAGES_TO_SHOW + 1);
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            paginationEl.appendChild(createPageItem(i, i, false, i === currentPage));
+        }
+        paginationEl.appendChild(createPageItem('»', currentPage + 1, currentPage === totalPages, false, true));
+    }
+
+    async function loadSelfRecordData() { /* ... (same, query leaderboard_highest_scores) ... */
+      const username = cookie('username');
       if (username) {
         try {
           const { data, error } = await supabase
-            .from('leaderboard')
+            .from('leaderboard_highest_scores')
             .select('score, created_at')
             .eq('name', username)
-            .order('score', { ascending: false })
             .limit(1);
-
-          if (error) {
-            console.error('自己ベスト読み込みエラー:', error);
-            selfRecordElement.textContent = i18n['no-name-tip']; // エラー時もデフォルト表示
-            return;
-          }
-
+          if (error) throw error;
           if (data && data.length > 0) {
             const record = data[0];
-            selfRecordElement.innerHTML = i18n['self-record']
-              .replace('{name}', username)
-              .replace('{score}', record.score)
+            selfRecordEl.innerHTML = (I18N['self-record'] || "{name}'s Record: Score {score} ({time})")
+              .replace('{name}', `<strong>${username}</strong>`)
+              .replace('{score}', `<strong>${record.score}</strong>`)
               .replace('{time}', formatDate(record.created_at));
           } else {
-            selfRecordElement.textContent = i18n['no-self-record'].replace('{name}', username);
+            selfRecordEl.textContent = (I18N['no-self-record'] || "No record found for {name}.").replace('{name}', username);
           }
         } catch (e) {
-            console.error('自己ベスト処理エラー:', e);
-            selfRecordElement.textContent = i18n['no-name-tip'];
+            console.error('Self record load error:', e);
+            selfRecordEl.textContent = I18N['no-name-tip'] || 'Play the game to see your record!';
         }
       } else {
-        selfRecordElement.textContent = i18n['no-name-tip'];
+        selfRecordEl.textContent = I18N['no-name-tip'] || 'Play the game to see your record!';
       }
     }
     
-    // ナビゲーションリンクのイベントリスナー
-    navLinks.forEach(link => {
+    // --- URL and State Management ---
+    function updateUserURL() {
+        const params = new URLSearchParams();
+        if (currentRankingType !== 'all') params.set('type', currentRankingType);
+        if (currentRankingType === 'query' && currentQuery) params.set('query', currentQuery);
+        if (currentPage > 1) params.set('page', currentPage);
+        const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        history.pushState({type: currentRankingType, page: currentPage, query: currentQuery}, '', newRelativePathQuery);
+    }
+
+    function parseURLAndSetup() {
+        const params = new URLSearchParams(window.location.search);
+        currentRankingType = params.get('type') || 'all';
+        currentPage = parseInt(params.get('page')) || 1;
+        currentQuery = params.get('query') || '';
+        
+        if (currentRankingType === 'query' && currentQuery) {
+            searchInputEl.value = currentQuery;
+        }
+        // Set active nav link
+        navLinkEls.forEach(l => l.classList.remove('active'));
+        const activeLink = document.querySelector(`.navbar-nav .nav-link[data-type="${currentRankingType}"]`);
+        if (activeLink) activeLink.classList.add('active');
+        else if (currentRankingType !== 'query') { // Default to 'all' if type is invalid and not query
+            document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
+        }
+    }
+
+    // --- Event Listeners ---
+    navLinkEls.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        navLinks.forEach(l => l.classList.remove('active'));
+        const type = link.dataset.type;
+        if (type === currentRankingType && currentRankingType !== 'query') return; // Avoid reload if same type
+
+        currentRankingType = type;
+        currentPage = 1;
+        currentQuery = '';
+        searchInputEl.value = '';
+        
+        navLinkEls.forEach(l => l.classList.remove('active'));
         link.classList.add('active');
         
-        currentRankingType = link.dataset.type;
-        currentPage = 1; // タイプ変更時は1ページ目に戻す
-        currentQuery = ''; // 通常のランキングタイプ選択時は検索クエリをクリア
-        searchInput.value = ''; // 検索入力欄もクリア
-        loadRanking();
+        updateUserURL();
+        fetchRankingData();
+        updateRankingTitleElement();
       });
     });
 
-    // 検索フォームのイベントリスナー
-    searchForm.addEventListener('submit', (e) => {
+    searchFormEl.addEventListener('submit', (e) => {
       e.preventDefault();
-      const queryText = searchInput.value.trim();
-      if (queryText) {
-        currentRankingType = 'query';
-        currentQuery = queryText;
-        currentPage = 1;
-        // アクティブなナビゲーションリンクをクリア
-        navLinks.forEach(l => l.classList.remove('active'));
-        loadRanking();
-      } else {
-        // 検索文字が空の場合は総合ランキングに戻すなど
-        currentRankingType = 'all';
-        currentQuery = '';
-        navLinks.forEach(l => l.classList.remove('active'));
-        document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active'); // 総合をアクティブに
-        loadRanking();
+      const queryText = searchInputEl.value.trim();
+      currentRankingType = queryText ? 'query' : 'all'; // If search is cleared, go to 'all'
+      currentQuery = queryText;
+      currentPage = 1;
+      
+      navLinkEls.forEach(l => l.classList.remove('active'));
+      if (currentRankingType === 'all') {
+          document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
       }
+      // For 'query', no specific tab is activated, title shows "Search Results"
+
+      updateUserURL();
+      fetchRankingData();
+      updateRankingTitleElement();
     });
 
-    // 初期読み込み
-    loadRanking();
-    loadSelfRecord();
+    window.addEventListener('popstate', (event) => { // Handle browser back/forward
+        parseURLAndSetup(); // Re-parse URL
+        fetchRankingData(); // Reload data based on new state
+        updateRankingTitleElement();
+    });
 
-  </script>
+    // --- Initial Page Load ---
+    async function initializePage() {
+        await loadAndApplyI18N(); // Load languages first
+        parseURLAndSetup();    // Then parse URL and set up initial state
+        fetchRankingData();    // Then fetch data
+        loadSelfRecordData();  // And self record
+    }
+
+    // Wait for DOM to be ready before initializing, especially if jQuery is used for selectors elsewhere.
+    // However, since we use getElementById for main elements, it can run sooner.
+    // For safety with i18n application:
+    document.addEventListener('DOMContentLoaded', initializePage);
+
+</script>
 </body>
 </html>
