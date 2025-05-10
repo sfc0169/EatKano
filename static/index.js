@@ -1,10 +1,13 @@
+// IMPORTANT: Make sure to include the Supabase SDK in your HTML file before this script:
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 
 (function(w) {
   // ── ここから追加 ──
   const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…';
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'; // Replace with your actual Supabase anonymous key
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // Assuming Supabase SDK provides supabase.createClient globally or createClient directly
 
   async function submitScore(score) {
     const name = cookie('username') || prompt('お名前を入力してください');
@@ -19,7 +22,8 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
       alert('スコアの保存に失敗しました');
     }
   }
-  // ──
+  // ── ここまで追加 ──
+
     function getJsonI18N() {
         // https://developer.mozilla.org/zh-CN/docs/Web/API/Navigator/language
         
@@ -289,24 +293,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         }, 1500);
     }
 
-
-    function encrypt(text) {
-        let encrypt = new JSEncrypt();
-        encrypt.setPublicKey("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTzGwX6FVKc7rDiyF3H+jKpBlRCV4jOiJ4JR33qZPVXx8ahW6brdBF9H1vdHBAyO6AeYBumKIyunXP9xzvs1qJdRNhNoVwHCwGDu7TA+U4M7G9FArDG0Y6k4LbS0Ks9zeRBMiWkW53yQlPshhtOxXCuZZOMLqk1vEvTCODYYqX5QIDAQAB");
-        return encrypt.encrypt(text);
-    }
-
-    function SubmitResults() {
-        if ($("#username").val() && _gameSettingNum === 20) {
-            let httpRequest = new XMLHttpRequest();
-            httpRequest.open('POST', './SubmitResults.php', true);
-            httpRequest.setRequestHeader("Content-type", "application/json");
-            let name = $("#username").val();
-            let message = $("#message").val();
-            let test = "|_|";
-            httpRequest.send(encrypt(_gameScore + test + name + test + tj + test + message));
-        }
-    }
+    // Old encrypt and SubmitResults functions are removed as per instructions.
 
     function createTimeText(n) {
         return 'TIME:' + Math.ceil(n);
@@ -460,7 +447,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         let score = (mode === MODE_ENDLESS ? cps : _gameScore);
         let best = getBestScore(score);
         l.attr('class', l.attr('class').replace(/bgc\d/, 'bgc' + c));
-        $('#GameScoreLayer-text').html(shareText(cps));
+        $('#GameScoreLayer-text').html(shareText(cps)); // shareText will call submitScore internally
         let normalCond = legalDeviationTime() || mode !== MODE_NORMAL;
         l.css('color', normalCond ? '': 'red');
 
@@ -486,23 +473,6 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         hideGameScoreLayer();
         showWelcomeLayer();
     }
-
-   function shareText(cps) {
-    if (mode === MODE_NORMAL) {
-      const now = Date.now();
-      deviationTime = now - _date1.getTime();
-      if (!legalDeviationTime()) {
-        return I18N['time-over'] +
-          ((deviationTime/1000) - _gameSettingNum).toFixed(2) + 's';
-      }
-      submitScore(_gameScore);
-    }
-    if (cps <= 5)  return I18N['text-level-1'];
-    if (cps <= 8)  return I18N['text-level-2'];
-    if (cps <= 10) return I18N['text-level-3'];
-    if (cps <= 15) return I18N['text-level-4'];
-    return I18N['text-level-5'];
-  }
 
     function toStr(obj) {
         if (typeof obj === 'object') {
@@ -586,14 +556,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         return str === '' || str === undefined || str == null;
     }
 
-    w.goRank = function() {
-        let name = $("#username").val();
-        let link = './rank.php';
-        if (!isnull(name)) {
-            link += "?name=" + name;
-        }
-        window.location.href = link;
-    }
+    // w.goRank function is removed as per instructions.
 
     function click(index) {
         if (!welcomeLayerClosed) {
@@ -630,7 +593,6 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         }
     }
 
-
     w.getClickBeforeImage = function() {
         $('#click-before-image').click();
     }
@@ -660,4 +622,23 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
             }`);
         })
     }
-}) (window);
+
+  // ── ここから置き換え ──
+  function shareText(cps) {
+    if (mode === MODE_NORMAL) {
+      const now = Date.now();
+      deviationTime = now - _date1.getTime();
+      if (!legalDeviationTime()) {
+        return I18N['time-over'] +
+          ((deviationTime/1000) - _gameSettingNum).toFixed(2) + 's';
+      }
+      submitScore(_gameScore); // Call the new submitScore function
+    }
+    if (cps <= 5)  return I18N['text-level-1'];
+    if (cps <= 8)  return I18N['text-level-2'];
+    if (cps <= 10) return I18N['text-level-3'];
+    if (cps <= 15) return I18N['text-level-4'];
+    return I18N['text-level-5'];
+  }
+  // ── ここまで置き換え ──
+})(window);
