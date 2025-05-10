@@ -1,9 +1,19 @@
-body {
-    font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
+/* Global Reset & Box Sizing */
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box; /* Recommended for easier layouting */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -ms-tap-highlight-color: rgba(0, 0, 0, 0);
+    -ms-user-select: none; /* Might be better to handle this with JS if needed for specific elements */
 }
 
+html, body {
+    font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
+    /* font-size will be set by index.js */
+}
+
+/* Loading Spinner (Original) */
 .loading {
     background-image: url("data:image/gif;base64,R0lGODlhJQAlAJECAL3L2AYrTv///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgACACwAAAAAJQAlAAACi5SPqcvtDyGYIFpF690i8xUw3qJBwUlSadmcLqYmGQu6KDIeM13beGzYWWy3DlB4IYaMk+Dso2RWkFCfLPcRvFbZxFLUDTt21BW56TyjRep1e20+i+eYMR145W2eefj+6VFmgTQi+ECVY8iGxcg35phGo/iDFwlTyXWphwlm1imGRdcnuqhHeop6UAAAIfkEBQoAAgAsEAACAAQACwAAAgWMj6nLXAAh+QQFCgACACwVAAUACgALAAACFZQvgRi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwXABEADAADAAACBYyPqcsFACH5BAUKAAIALBUAFQAKAAsAAAITlGKZwWoMHYxqtmplxlNT7ixGAQAh+QQFCgACACwQABgABAALAAACBYyPqctcACH5BAUKAAIALAUAFQAKAAsAAAIVlC+BGL3Z3IlxUmUuhtR2LzHhsiEFACH5BAUKAAIALAEAEQAMAAMAAAIFjI+pywUAIfkEBQoAAgAsBQAFAAoACwAAAhOUYJnAagwdjGq2amXGU1PuLEYBACH5BAUKAAIALBAAAgAEAAsAAAIFhI+py1wAIfkEBQoAAgAsFQAFAAoACwAAAhWUL4AIvdnciXFSZS6G1HYvMeGyIQUAIfkEBQoAAgAsFwARAAwAAwAAAgWEj6nLBQAh+QQFCgACACwVABUACgALAAACE5RgmcBqDB2MarZqZcZTU+4sRgEAIfkEBQoAAgAsEAAYAAQACwAAAgWEj6nLXAAh+QQFCgACACwFABUACgALAAACFZQvgAi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwBABEADAADAAACBYSPqcsFADs=");
     background-repeat: no-repeat;
@@ -11,285 +21,251 @@ body {
     background-size: auto 60%;
 }
 
-.start_btn{
-    display:inline-block;
-    margin:0 auto;
-    width:8em;
-    height:1.7em;
-    line-height:1.7em;
-    font-size:2.2em;
-    color:#fff;
+/* Start Button Style (Original, might be overridden by Bootstrap if used on a .btn) */
+.start_btn { /* This class seems unused in the HTML provided for welcome screen */
+    display: inline-block;
+    margin: 0 auto;
+    width: 8em;
+    height: 1.7em;
+    line-height: 1.7em;
+    font-size: 2.2em;
+    color: #fff;
 }
 
-.SHADE {
+/* --- Layout Helper Classes (Original with Flexbox adjustments) --- */
+.SHADE { /* Full-screen overlay base */
+    position: absolute; /* or fixed, depending on context in index.js */
     top: 0;
     left: 0;
     width: 100%;
-    bottom: 0;
+    height: 100%; /* Use height instead of bottom:0 for full height */
     z-index: 11;
+    overflow: hidden; /* Added to prevent content spill */
 }
 
-.BOX-V {
-    box-orient: vertical;
-    -webkit-box-orient: vertical;
-    -moz-box-orient: vertical;
-    -ms-flex-direction: column;
-}
-
-.BOX-D {
-    box-align: end;
-    box-pack: center;
-    -webkit-box-align: end;
-    -webkit-box-pack: center;
-    -ms-flex-align: end;
-    -ms-flex-pack: center;
-}
-
-.BOX-M {
-    box-align: center;
-    box-pack: center;
-    -webkit-box-align: center;
-    -webkit-box-pack: center;
-    -ms-flex-align: center;
-    -ms-flex-pack: center;
-}
-
-.BOX-S {
-    display: block;
-    box-flex: 1;
-    -webkit-box-flex: 1;
-    -moz-box-flex: 1;
-    -ms-flex: 1;
-}
-
+/* Flexbox Container Styles (Modernized) */
 .BOX,
 .BOX-V,
 .BOX-D,
 .BOX-M,
 .FOOTER {
-    display: box;
-    display: -webkit-box;
-    display: -moz-box;
-    display: -ms-flexbox;
+    display: flex;
 }
 
-.BBOX,
-.BOX,
-.APP-STAGE,
-.INSET-STAGE,
-.STAGE,
-.PAGE-STAGE,
-.PAGE,
-.PAGE-BOX,
-.INSET-PAGE,
-.FOOTER {
-    box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
+.BOX-V { /* Vertical Flex */
+    flex-direction: column;
 }
 
+.BOX-D { /* Align items to end, pack to center (Original was box-align, box-pack) */
+    align-items: flex-end;
+    justify-content: center;
+}
 
+.BOX-M { /* Align and pack to center */
+    align-items: center;
+    justify-content: center;
+}
+
+.BOX-S { /* Flex item to grow */
+    flex-grow: 1;
+}
+
+/* --- Welcome Screen --- */
 #welcome {
-    background-color: rgba(0, 0, 0, .8);
+    background-color: rgba(0, 0, 0, 0.85); /* Slightly darker for better text contrast */
     text-align: center;
     font-weight: bold;
-    overflow: hidden;
+    /* SHADE class already handles position and z-index */
 }
 
-.welcome-bg {
+.welcome-bg { /* This is for the image behind the welcome text */
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-size: 100% 100%;
-    opacity: .4;
-    overflow: hidden;
+    /* background-image: url('../image/your-welcome-background.jpg'); /* Replace with your image */
+    background-color: #333; /* Fallback color or if no image */
+    background-size: cover; /* Cover the area, maintain aspect ratio */
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.3; /* Original was 0.4, adjust as needed */
+    z-index: -1; /* Ensure it's behind the text content of #welcome */
 }
 
+#btn_group { /* Button group styling in welcome screen */
+    width: 60%; /* Responsive width */
+    max-width: 280px; /* Max width for larger screens */
+    margin-left: auto;
+    margin-right: auto;
+}
+/* Media queries for btn_group can be simplified or adjusted with Bootstrap grid */
+
+#setting {
+    width: 80%;
+    max-width: 500px; /* Max width for settings panel */
+    margin-left: auto;
+    margin-right: auto;
+    color: #fff; /* Text color for settings, assuming dark background */
+}
+#setting .input-group-text {
+    color: #333; /* Ensure text in input group addon is readable */
+}
+
+
+/* --- Game UI Elements --- */
 #GameTimeLayer {
+    position: absolute; /* Will be set by index.js if !isDesktop */
     top: 1em;
     left: 0;
     width: 100%;
     text-align: center;
     color: rgb(233, 138, 131);
-    font-size: 4em;
-    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
-    overflow: hidden;
+    font-size: 3em; /* Adjusted from 4em, can be fine-tuned */
+    text-shadow: 0 0 2px #fff, 0 0 2px #fff; /* Reduced shadow for clarity */
+    z-index: 12; /* Above game layer */
 }
 
-#GameLayerBG {
+#GameLayerBG { /* Background for the game tiles area */
+    position: absolute; /* Will be set by index.js if !isDesktop */
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    background: #e8f7fa; /* Light blueish background, instead of plain white */
     overflow: hidden;
-    background: #fff;
 }
 
-.GameLayer {
+.GameLayer { /* Container for tile rows */
     position: absolute;
     bottom: 0;
     left: 0;
+    width: 100%; /* Ensure it takes full width of its parent GameLayerBG */
 }
 
-.block {
+.block { /* Individual game tile */
     position: absolute;
     border-top: 1px solid #b8dfe6;
     background-repeat: no-repeat;
     background-position: center;
 }
 
-.t1,
-.t2,
-.t3,
-.t4,
-.t5 {
-    background-size: auto 100%;
-    background-image: url(./image/ClickBefore.png);
-}
-
-.tt1,
-.tt2,
-.tt3,
-.tt4,
-.tt5 {
-    background-size: auto 86%;
-    background-image: url(./image/ClickAfter.png);
-}
-
-.bl {
+.bl { /* Block with left border */
     border-left: 1px solid #b8dfe6;
 }
 
-@-ms-keyframes flash {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+/* Tile Images - Adjusted paths relative to index.css in static folder */
+.t1, .t2, .t3, .t4, .t5 {
+    background-size: auto 100%;
+    background-image: url('../image/ClickBefore.png'); /* Path relative to index.css */
 }
 
+.tt1, .tt2, .tt3, .tt4, .tt5 {
+    background-size: auto 86%;
+    background-image: url('../image/ClickAfter.png'); /* Path relative to index.css */
+}
+
+/* Animations */
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.1; } /* Less jarring than opacity 0 */
+    100% { opacity: 1; }
+}
+/* Prefixed versions for older browser compatibility if strictly needed, but generally not for modern ones */
 @-webkit-keyframes flash {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-    }
+    0% { opacity: 1; }
+    50% { opacity: 0.1; }
+    100% { opacity: 1; }
 }
 
 .flash {
-    -webkit-animation: flash .2s 3;
-    animation: flash .2s 3;
+    animation: flash 0.2s 3;
+    -webkit-animation: flash 0.2s 3;
 }
 
-.bad {
-    background-color: rgb(211, 91, 91);
-    -webkit-animation: flash .2s 3;
-    animation: flash .2s 3;
+.bad { /* When a wrong tile is tapped */
+    background-color: rgba(211, 91, 91, 0.8); /* Slightly transparent red */
+    animation: flash 0.2s 3;
+    -webkit-animation: flash 0.2s 3;
 }
 
-* {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-    -ms-tap-highlight-color: rgba(0, 0, 0, 0);
-    -ms-user-select: none;
-}
-
+/* --- Score Screen --- */
 #GameScoreLayer {
-    padding-top: 2em;
-    font-size: 2em;
+    /* SHADE class handles position and z-index */
+    background-color: rgba(0, 0, 0, 0.7); /* Default dark overlay */
+    padding-top: 10vh; /* Use viewport units for responsive padding */
+    font-size: 1.5em;  /* Base font size for score layer, can be adjusted */
     font-weight: bold;
-    color: #251c1c;
+    color: #f0f0f0; /* Light text color for dark background */
     text-align: center;
-    overflow: hidden;
+}
+/* The .bgc1, .bgc2 etc. classes in index.js will override background-color */
+
+#GameScoreLayer .col-3,
+#GameScoreLayer .col-2 {
+    /* Bootstrap columns are flex items. Max-width might not be needed if using BS grid properly. */
+    /* Original: max-width: 144px; */
+    /* This can be removed if Bootstrap's grid handles sizing adequately */
 }
 
-.share-icon {
-    width: 1.7em;
-    background-repeat: no-repeat;
-    background-size: auto 100%;
-}
+/* Bootstrap button adjustments (if needed, usually BS defaults are fine) */
+/* #GameScoreLayer-btn .btn, #GameScoreLayer-share .btn {} */
+/* .btn:active { opacity: 0.8; } /* Standard BS active state is usually good */
 
-
-
-#GameScoreLayer-btn .btn,
-#GameScoreLayer-share .btn {
-    text-align: center;
-    font-size: 1.1em;
-    color: rgba(0, 0, 0, 0.3);
-    height: 2em;
-    line-height: 2em;
-}
-
-.btn:active {
-    opacity: 0.2;
-}
-
+/* Landscape Mode Message (Original) */
 #landscape {
-    display: none;
+    display: none; /* Shown via JS for landscape on mobile */
+    /* Ensure it's styled to be a prominent message if shown */
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    z-index: 9999;
+    display: flex; /* Re-enable display:none from original if JS handles it */
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 1.5em;
+    padding: 20px;
 }
 
+
+/* Desktop Game Body Container (Original) */
 #gameBody {
-    position: relative;
-    width: 640px;
+    position: relative; /* If this is for desktop only, JS adds it */
+    width: 100%; /* Make it responsive first */
+    max-width: 640px; /* Then cap the width for desktop-like view */
     margin: 0 auto;
+    height: 100vh; /* Ensure it takes full viewport height if it's the main container */
+    overflow: hidden; /* Prevent accidental scrollbars if content overflows slightly */
 }
 
+
+/* Share on WX (Original - WeChat specific) */
 #share-wx {
     background: rgba(0, 0, 0, 0.8);
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    height: 100%; /* ensure it covers the screen */
     z-index: 10000;
-    display: none;
+    display: none; /* Shown by JS */
 }
 
-#btn_group {
-    width: 37.5%;
-    max-width: 200px;
-}
-
-@media (max-width: 450px) {
-    #btn_group {
-        max-width: 110px !important;
-    }
-}
-
-@media (max-width: 600px) {
-    #btn_group {
-        max-width: 125px;
-    }
-}
-
-@media (max-width: 800px) {
-    #btn_group {
-        max-width: 150px;
-    }
-}
-
-#setting {
-    width: 50%;
-}
-
-@media (max-width: 1200px) {
-    #setting {
-        width: 80%;
-    }
-}
-
-#GameScoreLayer .col-3, #GameScoreLayer .col-2 {
-    max-width: 144px;
-}
-
+/* Ensure dropdown items are clickable */
 .dropdown-item {
     cursor: pointer;
+}
+
+/* --- Media Queries for responsiveness (Simplified) --- */
+/* It's often better to design mobile-first, then add queries for larger screens */
+
+@media (min-width: 768px) { /* Example: tablets and larger */
+    #GameTimeLayer {
+        font-size: 4em;
+    }
+    #GameScoreLayer {
+        font-size: 2em;
+    }
 }
