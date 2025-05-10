@@ -6,15 +6,15 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 (function(w) {
   // ── ここから追加 ──
   const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // Replace with your actual Supabase anonymous key
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // Assuming Supabase SDK provides supabase.createClient globally or createClient directly
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // This should be your actual Supabase anonymous key
+  const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // 変数名を変更 (グローバルのsupabaseと区別)
 
   async function submitScore(score) {
     const name = cookie('username') || prompt('お名前を入力してください');
     if (!name) return;
     cookie('username', name, 100);
     const comment = (document.getElementById('message')?.value || '').trim();
-    const { error } = await supabase
+    const { error } = await supaClient // 変更した変数名を使用
       .from('leaderboard')
       .insert([{ name, score, comment }]);
     if (error) {
