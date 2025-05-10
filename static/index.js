@@ -1,6 +1,25 @@
 const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 
 (function(w) {
+  // ── ここから追加 ──
+  const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  async function submitScore(score) {
+    const name = cookie('username') || prompt('お名前を入力してください');
+    if (!name) return;
+    cookie('username', name, 100);
+    const comment = (document.getElementById('message')?.value || '').trim();
+    const { error } = await supabase
+      .from('leaderboard')
+      .insert([{ name, score, comment }]);
+    if (error) {
+      console.error('スコア保存エラー:', error);
+      alert('スコアの保存に失敗しました');
+    }
+  }
+  // ──
     function getJsonI18N() {
         // https://developer.mozilla.org/zh-CN/docs/Web/API/Navigator/language
         
@@ -468,22 +487,22 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         showWelcomeLayer();
     }
 
-    function shareText(cps) {
-        if (mode === MODE_NORMAL) {
-            let date2 = new Date();
-            deviationTime = (date2.getTime() - _date1.getTime())
-            if (!legalDeviationTime()) {
-                return I18N['time-over'] + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
-            }
-            SubmitResults();
-        }
-
-        if (cps <= 5) return I18N['text-level-1'];
-        if (cps <= 8) return I18N['text-level-2'];
-        if (cps <= 10)  return I18N['text-level-3'];
-        if (cps <= 15) return I18N['text-level-4'];
-        return I18N['text-level-5'];
+   function shareText(cps) {
+    if (mode === MODE_NORMAL) {
+      const now = Date.now();
+      deviationTime = now - _date1.getTime();
+      if (!legalDeviationTime()) {
+        return I18N['time-over'] +
+          ((deviationTime/1000) - _gameSettingNum).toFixed(2) + 's';
+      }
+      submitScore(_gameScore);
     }
+    if (cps <= 5)  return I18N['text-level-1'];
+    if (cps <= 8)  return I18N['text-level-2'];
+    if (cps <= 10) return I18N['text-level-3'];
+    if (cps <= 15) return I18N['text-level-4'];
+    return I18N['text-level-5'];
+  }
 
     function toStr(obj) {
         if (typeof obj === 'object') {
