@@ -356,7 +356,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Original logic (当たり判定) with modification for bad tile animation
+    function gameTapEvent(e) { // Original logic (当たり判定)
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -395,7 +395,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
                 // アニメーションが完了するのを待ってからゲームオーバー
-                setTimeout(() => { gameOver(); }, 800); // 0.8秒後にゲームオーバー処理を実行
+                setTimeout(() => { gameOver(); }, 500); // 0.5秒後にゲームオーバー処理を実行
             }
         }
         return false;
