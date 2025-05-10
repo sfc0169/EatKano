@@ -112,8 +112,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         '#GameLayerBG {margin:0 auto; position:relative;} ' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
             '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
-        // 点滅効果を強化するためのCSS追加
-        '.bad {background-color: rgb(211, 91, 91) !important; -webkit-animation: flash .2s 3 !important; animation: flash .2s 3 !important;}' +
         '</style>');
 
     let map = {'d': 1, 'f': 2, 'j': 3, 'k': 4};
@@ -358,7 +356,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Modified for bad tap animation
+    function gameTapEvent(e) { // 修正: 明示的なアニメーション実装
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -393,17 +391,25 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
             
-            // badクラスを追加して点滅させる
+            // 赤くする
             tar.classList.add('bad');
             
-            if (mode === MODE_PRACTICE) {
-                // 練習モードではbadクラスを一定時間後に削除
-                setTimeout(() => { tar.classList.remove('bad'); }, 500);
-            } else {
-                // 通常モード・エンドレスモードではすぐにゲームオーバー
-                // アニメーションは自動的に実行される
-                gameOver();
-            }
+            // 明示的なJS点滅アニメーション
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+                tar.style.opacity = tar.style.opacity === '0' ? '1' : '0';
+                flashCount++;
+                if (flashCount >= 6) { // 3回点滅（オン/オフで6回の状態変化）
+                    clearInterval(flashInterval);
+                    tar.style.opacity = '1'; // 最終的に見えるように
+                    
+                    if (mode !== MODE_PRACTICE) {
+                        gameOver(); // アニメーション完了後にゲームオーバー
+                    } else {
+                        tar.classList.remove('bad'); // 練習モードでは赤色を除去
+                    }
+                }
+            }, 100); // 0.1秒ごとに切り替え→合計0.6秒で3回点滅
         }
         return false;
     }
