@@ -86,6 +86,10 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
     let soundMode = getSoundMode();
 
     w.init = function() {
+        // ① ページ冒頭にゲームレイヤーを注入
+        document.body.insertAdjacentHTML('afterbegin', createGameLayer());
+        
+        // ② 既存のウェルカムを表示
         showWelcomeLayer();
         body = document.getElementById('gameBody') || document.body;
         body.style.height = window.innerHeight + 'px';
@@ -503,7 +507,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
         return data;
     }
 
-    document.write(createGameLayer());
+    // document.write(createGameLayer()); // This line is removed as per instruction
 
     function initSetting() {
         $("#username").val(cookie("username") ? cookie("username") : "");
