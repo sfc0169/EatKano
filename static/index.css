@@ -1,158 +1,255 @@
-/* static/index.css の修正案 */
-html, body {
-  height: 100%;
-  font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  color: #333;
+/* static/index.css - フォーク元をベースに調整 */
+body {
+    font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
+    margin: 0;
+    padding: 0;
+    /* index.jsでフォントサイズが設定される */
+    /* 画面全体の高さを確保し、スクロールバーを基本的に非表示 */
+    height: 100vh; /* or 100%; if html also has height: 100% */
+    overflow: hidden;
 }
 
-.SHADE {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1000;
-  overflow: hidden;
+/* .loading は元のまま */
+.loading {
+    background-image: url("data:image/gif;base64,R0lGODlhJQAlAJECAL3L2AYrTv///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgACACwAAAAAJQAlAAACi5SPqcvtDyGYIFpF690i8xUw3qJBwUlSadmcLqYmGQu6KDIeM13beGzYWWy3DlB4IYaMk+Dso2RWkFCfLPcRvFbZxFLUDTt21BW56TyjRep1e20+i+eYMR145W2eefj+6VFmgTQi+ECVY8iGxcg35phGo/iDFwlTyXWphwlm1imGRdcnuqhHeop6UAAAIfkEBQoAAgAsEAACAAQACwAAAgWMj6nLXAAh+QQFCgACACwVAAUACgALAAACFZQvgRi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwXABEADAADAAACBYyPqcsFACH5BAUKAAIALBUAFQAKAAsAAAITlGKZwWoMHYxqtmplxlNT7ixGAQAh+QQFCgACACwQABgABAALAAACBYyPqctcACH5BAUKAAIALAUAFQAKAAsAAAIVlC+BGL3Z3IlxUmUuhtR2LzHhsiEFACH5BAUKAAIALAEAEQAMAAMAAAIFjI+pywUAIfkEBQoAAgAsBQAFAAoACwAAAhOUYJnAagwdjGq2amXGU1PuLEYBACH5BAUKAAIALBAAAgAEAAsAAAIFhI+py1wAIfkEBQoAAgAsFQAFAAoACwAAAhWUL4AIvdnciXFSZS6G1HYvMeGyIQUAIfkEBQoAAgAsFwARAAwAAwAAAgWEj6nLBQAh+QQFCgACACwVABUACgALAAACE5RgmcBqDB2MarZqZcZTU+4sRgEAIfkEBQoAAgAsEAAYAAQACwAAAgWEj6nLXAAh+QQFCgACACwFABUACgALAAACFZQvgAi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwBABEADAADAAACBYSPqcsFADs=");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: auto 60%;
 }
+
+/* .start_btn はHTML側でBootstrapの .btn を使っているので、これは使われない想定 */
+/*
+.start_btn{
+    display:inline-block;
+    margin:0 auto;
+    width:8em;
+    height:1.7em;
+    line-height:1.7em;
+    font-size:2.2em;
+    color:#fff;
+}
+*/
+
+/* .SHADE は index.js で position: absolute/fixed が動的に設定される */
+/* HTML側でBootstrapクラスと併用されることを考慮し、基本的なz-indexのみ設定 */
+.SHADE {
+    top: 0;
+    left: 0;
+    width: 100%;
+    bottom: 0;
+    z-index: 11; /* ゲーム要素より手前、モーダルなどよりは後ろの想定 */
+    overflow: hidden; /* SHADE内で不要なスクロールを防ぐ */
+}
+
+/* 古いFlexboxの .BOX-* 系は、現代のブラウザやBootstrap 5との互換性を考慮し、使用を推奨しない。 */
+/* HTML側でBootstrapのFlexユーティリティ (d-flex, justify-content-*, align-items-*) を使うことを推奨。 */
+/* もしこれらのクラスがHTMLに残っていて、かつレイアウトに必須な場合は、
+   標準のFlexboxプロパティに置き換える必要がある。今回はコメントアウト。 */
+/*
+.BOX-V { box-orient: vertical; -webkit-box-orient: vertical; ... }
+.BOX-D { box-align: end; ... }
+.BOX-M { box-align: center; ... }
+.BOX-S { display: block; box-flex: 1; ... }
+.BOX, .BOX-V, .BOX-D, .BOX-M, .FOOTER { display: box; ... }
+*/
+
+/* .BBOX は box-sizing: border-box; を適用。Bootstrapでも .container などで適用されている。 */
+.BBOX {
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+}
+
 
 #welcome {
-  background-color: rgba(0, 0, 0, .88);
-  text-align: center;
-  font-weight: bold;
-  display: none;
-  color: white;
-  padding: 20px;
-  box-sizing: border-box;
+    background-color: rgba(0, 0, 0, .85); /* 少し濃いめにして視認性向上 */
+    text-align: center;
+    font-weight: bold;
+    color: white; /* 文字色 */
+    /* overflow: hidden; は .SHADE でカバー */
+    /* display: none; は index.js で制御される */
+    /* paddingはHTML側の .container で調整されることを期待 */
 }
 
-.welcome-bg {
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center center;
-  opacity: .25;
-  z-index: -1;
-  /* 実際の画像パスに置き換えてください */
-  background-image: url('./image/ClickBefore.png'); /* 仮でタイル画像を指定 */
+.welcome-bg { /* #welcome の中の背景画像用要素 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* 画像パスは実際の構成に合わせてください */
+    /* 例: background-image: url('./image/your_welcome_background.png'); */
+    background-size: contain; /* 画像が要素内に収まるようにしつつ、アスペクト比を保つ */
+    background-repeat: no-repeat;
+    background-position: center center;
+    opacity: .3; /* 元の指定より少し透明度を調整 */
+    z-index: -1; /* テキストコンテンツの後ろに配置 */
+    overflow: hidden;
 }
-
-.FILL {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
 
 #GameTimeLayer {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
-  padding: 5px 15px;
-  background-color: rgba(0,0,0,0.3); /* 少し薄く */
-  border-radius: 8px;
-  text-align: center;
-  color: rgb(233, 138, 131); /* 元の指定に戻してみる */
-  font-size: 2.8em; /* HTMLでの指定に合わせて調整 */
-  font-weight: bold;
-  text-shadow: 0 0 2px #fff, 0 0 3px #fff; /* 元の指定に戻してみる */
-  z-index: 1050;
+    /* index.jsで position: absolute/fixed が動的に設定される */
+    top: 1em;
+    left: 0; /* 中央揃えは text-align で */
+    width: 100%;
+    text-align: center;
+    color: rgb(233, 138, 131);
+    font-size: 3.5em; /* 元の指定より少し小さくしてバランス調整 */
+    font-weight: bold; /* 明確にするため追加 */
+    text-shadow: 0 0 2px #fff, 0 0 3px #fff; /* 元の指定より少しシンプルに */
+    overflow: hidden;
+    z-index: 12; /* ゲームレイヤーより手前 */
 }
 
-#GameLayerBG { /* ゲームのメイン背景 */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #ffffff; /* ★★★ 背景を白に戻す ★★★ */
-  z-index: 10;
+#GameLayerBG {
+    /* index.jsで position: absolute/fixed が動的に設定される */
+    top: 0;
+    left: 0;
+    right: 0; /* width: 100% の代わり */
+    bottom: 0; /* height: 100% の代わり */
+    overflow: hidden;
+    background: #fff; /* ゲーム背景は白 */
+    z-index: 10; /* ゲーム要素のベース */
 }
 
-.GameLayer {
-  position: absolute;
+.GameLayer { /* ゲームタイルが配置される実際のレイヤー */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    /* width, height は JS で設定される */
 }
 
-.block {
-  position: absolute;
-  border-top: 1px solid #b8dfe6; /* ★★★ グリッド線の色を元の明るい色に戻す ★★★ */
-  background-repeat: no-repeat;
-  background-position: center;
-  box-sizing: border-box;
-  background-size: contain;
-  /* タイルの背景色は基本的には画像で表現されるが、念のため透明か白を指定 */
-  background-color: transparent; /* または #fff; */
+.block { /* 各タイル */
+    position: absolute;
+    border-top: 1px solid #b8dfe6; /* グリッド線 */
+    background-repeat: no-repeat;
+    background-position: center;
+    box-sizing: border-box; /* borderを含めてサイズ計算 */
+    background-size: contain; /* 画像がタイル内に収まるように */
 }
 
-.t1, .t2, .t3, .t4, .t5 {
-  background-image: url('./image/ClickBefore.png');
+/* 画像パスはCSSファイルからの相対パス。static/index.css と static/image/... の場合 */
+.t1,
+.t2,
+.t3,
+.t4,
+.t5 {
+    background-image: url(./image/ClickBefore.png);
 }
 
-.tt1, .tt2, .tt3, .tt4, .tt5 {
-  background-image: url('./image/ClickAfter.png');
+.tt1,
+.tt2,
+.tt3,
+.tt4,
+.tt5 {
+    /* background-size: auto 86%; 元の指定。containの方が安全か */
+    background-image: url(./image/ClickAfter.png);
 }
 
-.bl { /* 左の境界線 */
-  border-left: 1px solid #b8dfe6; /* ★★★ グリッド線の色を元の明るい色に戻す ★★★ */
+.bl { /* 左側のグリッド線 */
+    border-left: 1px solid #b8dfe6;
 }
 
-/* flash アニメーション */
-@keyframes flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-.flash {
-  animation: flash .15s 3;
+/* flashアニメーションは変更なし */
+@-ms-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+@-webkit-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+.flash { -webkit-animation: flash .2s 3; animation: flash .2s 3; }
+
+.bad { /* ミスタップ時のスタイル */
+    background-color: rgb(211, 91, 91);
+    -webkit-animation: flash .2s 3;
+    animation: flash .2s 3;
 }
 
-.bad {
-  background-color: rgba(211, 91, 91, 0.85); /* ミスタップ時の色、元のCSSに近い色 */
-  animation: flash .15s 2;
-}
-
-/* タップハイライト無効化 */
-body, button, a {
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  -ms-tap-highlight-color: rgba(0, 0, 0, 0);
+/* グローバルなスタイル。影響範囲に注意 */
+* {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* タップ時のハイライト無効 */
+    -ms-tap-highlight-color: rgba(0, 0, 0, 0);
+    /* -ms-user-select: none; は必要な要素に限定した方が良い */
 }
 
 #GameScoreLayer {
-  position: fixed;
-  color: #fff; /* スコアレイヤーの文字色は白のまま */
-  text-align: center;
-  display: none;
-  z-index: 1100;
-  padding: 20px;
-  box-sizing: border-box;
+    /* index.jsで position: absolute/fixed が動的に設定される */
+    padding-top: 2em;
+    font-size: 1.8em; /* 元の指定より少し小さく */
+    font-weight: bold;
+    color: #fff; /* HTML側で背景が暗いため、文字色は白を想定 */
+    text-align: center;
+    overflow: hidden;
+    display: none; /* JSで表示制御 */
+    z-index: 100; /* SHADEよりさらに手前 */
 }
-#GameScoreLayer > div {
-    max-width: 450px;
+/* GameScoreLayer内の背景を持つdivはHTML側でインラインスタイルが設定されている */
+
+/* .share-icon は現在のHTMLでは見当たらない */
+/*
+.share-icon { ... }
+*/
+
+/* #GameScoreLayer-btn, #GameScoreLayer-share も現在のHTMLでは見当たらない */
+/*
+#GameScoreLayer-btn .btn,
+#GameScoreLayer-share .btn { ... }
+*/
+
+/* .btn:active はBootstrapのスタイルに任せるか、必要なら上書き */
+/*
+.btn:active { opacity: 0.2; }
+*/
+
+/* #landscape は現在のHTMLでは見当たらない */
+/*
+#landscape { display: none; }
+*/
+
+#gameBody { /* JSで isDesktop の場合に挿入される想定 */
+    position: relative; /* これが基準になる */
+    width: 100%; /* スマホ表示を考慮し、固定幅を削除 */
+    max-width: 640px; /* デスクトップでの最大幅は維持 */
+    margin: 0 auto; /* 中央揃え */
+    height: 100vh; /* ビューポートの高さ一杯に */
+    overflow: hidden; /* 内容がはみ出ないように */
+}
+
+/* #share-wx は現在のHTMLでは見当たらない */
+/*
+#share-wx { ... }
+*/
+
+/* #btn_group, #setting の幅はHTML側のBootstrapクラス (w-100, container, d-gridなど) で制御されることを優先。
+   CSSでの固定的な % 指定やメディアクエリでの複雑な上書きは、Bootstrapと競合しやすいため、
+   ここでは max-width での制限程度に留めるか、Bootstrapのレイアウトに任せる。
+   HTML側で d-grid や mx-auto が使われているので、CSSでの width 指定は不要なことが多い。
+*/
+#btn_group {
+    /* width: 37.5%; */ /* 削除 */
+    max-width: 250px; /* HTMLのボタン構成に合わせて調整 */
+    margin-left: auto; /* 中央揃えのため */
+    margin-right: auto;
+}
+
+#setting {
+    /* width: 50%; */ /* 削除 */
+    max-width: 500px; /* 設定項目が多いので少し広めに */
     margin-left: auto;
     margin-right: auto;
-    /* スコアレイヤーの背景はHTML側で rgba(40, 40, 60, 0.85) が設定されている */
+    /* 背景色や文字色はHTML側で設定されている */
 }
 
+/*メディアクエリによる #btn_group, #setting の調整は、
+  Bootstrapのグリッドやユーティリティで対応できるか検討。
+  もし必要なら、HTMLの構造に合わせて再設計。今回はコメントアウト。*/
+/*
+@media (max-width: 450px) { #btn_group { max-width: 110px !important; } }
+...
+*/
 
-#gameBody {
-  position: relative;
-  max-width: 640px;
-  margin: 0 auto;
-  height: 100vh;
-  overflow: hidden;
-}
+/* #GameScoreLayer の .col-3, .col-2 はHTMLでBootstrapのクラスが使われている。
+   Bootstrapの列幅に依存させるため、ここでの max-width 指定は削除。 */
+/*
+#GameScoreLayer .col-3, #GameScoreLayer .col-2 { max-width: 144px; }
+*/
 
 .dropdown-item {
-  cursor: pointer;
-}
-.input-group-text {
-    font-size: 0.9em;
-}
-#setting input.form-control {
-    font-size: 0.9em;
+    cursor: pointer;
 }
