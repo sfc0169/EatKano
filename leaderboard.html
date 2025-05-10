@@ -19,6 +19,7 @@
     #leaderboard .list-group-item p { font-size: 0.85rem; margin-bottom: 0.3rem !important;}
     #leaderboard .list-group-item small.text-muted {font-size: 0.8rem;}
     .pagination .page-link { font-size: 0.9rem; }
+    .navbar-nav .nav-link.active { font-weight: bold; } /* アクティブなリンクを太字に */
   </style>
 </head>
 <body>
@@ -60,19 +61,16 @@
       <h1 id="rankingTitle" data-i18n="all-rank">総合ランキング</h1><br />
     </div>
     <div id="leaderboard" class="list-group shadow-sm">
-      <!-- ランキングデータはJSでここに挿入 -->
       <div class="list-group-item text-center" id="loadingMessage" data-i18n="loading">読み込み中...</div>
     </div>
     <nav aria-label="Page navigation" class="mt-4 mb-5">
       <ul class="pagination justify-content-center" id="pagination">
-        <!-- ページネーションはJSでここに挿入 -->
       </ul>
     </nav>
   </div>
 
   <footer class='fixed-bottom container footer-record' style='max-width:720px; margin:0 auto;'>
     <div class='text-center' id="selfRecord">
-      <!-- 自己ベスト記録はJSでここに挿入 -->
     </div>
   </footer>
 
@@ -80,89 +78,59 @@
     // ─── Supabase Client Initialization ───
     const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co/';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
-    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // ★★★ supabaseJs を supabase に変更し、変数名を supaClient に変更 ★★★
     // ─── End of Supabase Client Initialization ───
 
-    let I18N = {}; // 国際化文字列格納用
+    let I18N = {};
     const ITEMS_PER_PAGE = 10;
-    const MAX_PAGES_TO_SHOW = 9; // ページネーションで表示する最大ページ数
+    const MAX_PAGES_TO_SHOW = 9;
     let currentPage = 1;
     let currentRankingType = 'all';
     let currentQuery = '';
     let totalItems = 0;
 
-    // DOM Elements
     const leaderboardElement = document.getElementById('leaderboard');
     const paginationElement = document.getElementById('pagination');
     const rankingTitleElement = document.getElementById('rankingTitle');
-    const searchForm = document.getElementById('searchForm');
-    const searchInput = document.getElementById('searchInput');
+    const searchForm = document.getElementById('searchForm'); // searchFormEl から変更 (一貫性のため)
+    const searchInput = document.getElementById('searchInput'); // searchInputEl から変更
     const selfRecordElement = document.getElementById('selfRecord');
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link[data-type]');
     const loadingMessageElement = document.getElementById('loadingMessage');
+    const pageTitleElement = document.getElementById('pageTitle'); // pageTitleEl から変更
 
-    // Helper: Cookie function (from index.js, slightly modified for ranking page)
+
     function cookie(name, value, timeInDays) {
-        function toStr(obj) {
-            if (typeof obj === 'object') { try { return JSON.stringify(obj); } catch(e){ return String(obj);}}
-            return String(obj);
-        }
+        function toStr(obj) { if (typeof obj === 'object') { try { return JSON.stringify(obj); } catch(e){ return String(obj);}} return String(obj); }
         if (name) {
             if (value !== undefined) {
-                let expires = "";
-                if (timeInDays) {
-                    let date = new Date();
-                    date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000));
-                    expires = "; expires=" + date.toUTCString();
-                }
-                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/";
-                return true;
+                let expires = ""; if (timeInDays) { let date = new Date(); date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000)); expires = "; expires=" + date.toUTCString(); }
+                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/"; return true;
             } else {
-                let nameEQ = name + "=";
-                let ca = document.cookie.split(';');
+                let nameEQ = name + "="; let ca = document.cookie.split(';');
                 for (let i = 0; i < ca.length; i++) {
-                    let c = ca[i];
-                    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length);
                     if (c.indexOf(nameEQ) === 0) {
                         let valStr = unescape(c.substring(nameEQ.length, c.length));
-                        try {
-                            if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr);
-                            if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr);
-                        } catch (e) { /* ignore */ }
+                        try { if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr); if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr); } catch (e) {}
                         return valStr;
                     }
-                }
-                return null;
+                } return null;
             }
         }
-        let data = {}; let ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); }
-        return data;
+        let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
     }
-
-    // Helper: Format date
     function formatDate(dateString) {
-        if (!dateString) return '';
-        const date = new Date(dateString);
+        if (!dateString) return ''; const date = new Date(dateString);
         return date.toLocaleString((I18N && I18N.lang && I18N.lang !== 'en' ? I18N.lang + '-JP' : 'ja-JP'), { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     }
-
-    // Helper: Get rank suffix
-    function getRankSuffix(rank) { /* ... (same as before) ... */
+    function getRankSuffix(rank) {
         if (rank % 100 >= 11 && rank % 100 <= 13) return 'th';
-        switch (rank % 10) {
-            case 1: return 'st';
-            case 2: return 'nd';
-            case 3: return 'rd';
-            default: return 'th';
-        }
+        switch (rank % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
     }
-
-    // Helper: Get JSON for i18n (similar to index.js)
     async function loadI18N() {
         const LANGUAGES = [ { regex: /^zh\b/, lang: 'zh' }, { regex: /^ja\b/, lang: 'ja' }, { regex: /.*/, lang: 'en'} ];
         const detectedLang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en';
-        
         try {
             const response = await fetch(`./static/i18n/${detectedLang}.json`);
             if (!response.ok) throw new Error(`Failed to load ${detectedLang}.json`);
@@ -174,16 +142,15 @@
                 if (!response.ok) throw new Error('Failed to load en.json');
                 I18N = await response.json();
             } catch (fallbackError) {
-                console.error(fallbackError.message);
-                I18N = {}; // Prevent further errors
+                console.error(fallbackError.message); I18N = {};
             }
         }
         applyI18N();
     }
-
-    // Apply i18n texts to elements
     function applyI18N() {
         if (!I18N) return;
+        if (pageTitleElement && I18N['rank-title']) pageTitleElement.textContent = I18N['rank-title']; // pageTitleEl -> pageTitleElement
+        document.documentElement.lang = I18N['lang'] || 'en';
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
             if (I18N[key] !== undefined) el.textContent = I18N[key];
@@ -192,34 +159,26 @@
             const key = el.dataset.placeholderI18n;
             if (I18N[key] !== undefined) el.placeholder = I18N[key];
         });
-        if (I18N['rank-title']) document.getElementById('pageTitle').textContent = I18N['rank-title'];
-        if (I18N['lang']) document.documentElement.lang = I18N['lang'];
-        // Update dynamic titles after loading i18n
         updateRankingTitle();
     }
-    
     function updateRankingTitle() {
-        let titleKey = 'all-rank'; // Default
-        if (currentRankingType === 'day') titleKey = 'day-rank';
-        else if (currentRankingType === 'week') titleKey = 'week-rank';
-        else if (currentRankingType === 'month') titleKey = 'month-rank';
-        else if (currentRankingType === 'query') titleKey = 'query-record';
-        
+        if (!rankingTitleElement || !I18N) return; // rankingTitleEl -> rankingTitleElement
+        let titleKey = `${currentRankingType}-rank`;
+        if (currentRankingType === 'query') titleKey = 'query-record';
+        else if (currentRankingType === 'all') titleKey = 'all-rank';
         rankingTitleElement.textContent = I18N[titleKey] || (currentRankingType.charAt(0).toUpperCase() + currentRankingType.slice(1) + ' Ranking');
         if (currentRankingType === 'query' && currentQuery) {
             rankingTitleElement.textContent += `: ${currentQuery}`;
         }
     }
-
-
     async function loadRanking() {
-      loadingMessageElement.style.display = 'block';
-      leaderboardElement.innerHTML = ''; // Clear previous results except loading message
-      paginationElement.innerHTML = '';
+      if (loadingMessageElement) loadingMessageElement.style.display = 'block'; // loadingMsgEl -> loadingMessageElement
+      if (leaderboardElement) leaderboardElement.innerHTML = '';
+      if (loadingMessageElement && leaderboardElement) leaderboardElement.appendChild(loadingMessageElement);
+      if (paginationElement) paginationElement.innerHTML = '';
 
-      // Use the view for highest scores per player
-      let queryBuilder = supabase
-        .from('leaderboard_highest_scores') // ★★★ USING THE VIEW ★★★
+      let queryBuilder = supaClient // ★★★ supabase を supaClient に変更 ★★★
+        .from('leaderboard_highest_scores')
         .select('name, score, comment, created_at', { count: 'exact' });
 
       const now = new Date();
@@ -227,10 +186,10 @@
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         queryBuilder = queryBuilder.gte('created_at', todayStart);
       } else if (currentRankingType === 'week') {
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay() - (now.getDay() === 0 ? -6 : 1)); // Monday of current week
+        const dayOfWeek = now.getDay();
+        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const weekStart = new Date(now.setDate(diff));
         weekStart.setHours(0,0,0,0);
-        // const weekAgo = new Date(new Date().setDate(now.getDate() - 7)).toISOString(); // simpler 7 days ago
         queryBuilder = queryBuilder.gte('created_at', weekStart.toISOString());
       } else if (currentRankingType === 'month') {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -238,211 +197,182 @@
       } else if (currentRankingType === 'query' && currentQuery) {
         queryBuilder = queryBuilder.ilike('name', `%${currentQuery}%`);
       }
-      // 'all' type needs no additional date/name filter here
-
       queryBuilder = queryBuilder.order('score', { ascending: false })
-                                 .order('created_at', { ascending: true }); // Tie-breaking: older high score ranks higher
-
+                                 .order('created_at', { ascending: true });
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
       queryBuilder = queryBuilder.range(offset, offset + ITEMS_PER_PAGE - 1);
       
       try {
         const { data, error, count } = await queryBuilder;
-        loadingMessageElement.style.display = 'none';
-
+        if (loadingMessageElement) loadingMessageElement.style.display = 'none';
         if (error) {
           console.error('Ranking load error:', error);
-          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error loading ranks.'} (詳細: ${error.message})</div>`;
+          if (leaderboardElement) leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${(I18N && I18N['error-loading']) || 'Error loading ranks.'} (詳細: ${error.message})</div>`;
           return;
         }
         totalItems = count || 0;
-
-        if (data.length === 0) {
-          leaderboardElement.innerHTML = `<div class="list-group-item text-center">${I18N['no-data'] || 'No data found.'}</div>`;
-        } else {
-          data.forEach((r, index) => {
-            const rank = offset + index + 1;
-            const li = document.createElement('a');
-            li.href = '#';
-            li.className = 'list-group-item list-group-item-action';
-            li.innerHTML = `
-              <div class="d-flex w-100 justify-content-between align-items-center">
-                <h5 class="mb-0">
-                  <span class="badge bg-primary rank-badge">${rank}${getRankSuffix(rank)}</span>
-                  ${r.name || (I18N['anonymous'] || 'Anonymous')}
-                </h5>
-                <small class="text-muted">${formatDate(r.created_at)}</small>
-              </div>
-              <p class="mb-1 ms-1 mt-1">SCORE: <strong>${r.score}</strong></p>
-              ${r.comment ? `<small class="text-muted ms-1 fst-italic">“${r.comment}”</small>` : ''}
-            `;
-            leaderboardElement.appendChild(li);
-          });
+        if (leaderboardElement) { // leaderboardElement の存在を確認
+            if (data.length === 0) {
+                leaderboardElement.innerHTML = `<div class="list-group-item text-center p-5">${(I18N && I18N['no-data']) || 'No data found.'}</div>`;
+            } else {
+                leaderboardElement.innerHTML = '';
+                data.forEach((r, index) => {
+                    const rank = offset + index + 1;
+                    const li = document.createElement('a');
+                    li.href = '#';
+                    li.className = 'list-group-item list-group-item-action';
+                    li.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                        <span class="badge bg-primary rank-badge">${rank}${getRankSuffix(rank)}</span>
+                        ${r.name || ((I18N && I18N['anonymous']) || 'Anonymous')}
+                        </h5>
+                        <small class="text-muted">${formatDate(r.created_at)}</small>
+                    </div>
+                    <p class="mb-1 ms-1 mt-1">SCORE: <strong>${r.score}</strong></p>
+                    ${r.comment ? `<small class="text-muted ms-1 fst-italic">“${r.comment.length > 50 ? r.comment.substring(0, 50) + '...' : r.comment}”</small>` : `<small class="text-muted ms-1 fst-italic">${(I18N && I18N['no-message']) || 'No message'}</small>`}
+                    `;
+                    leaderboardElement.appendChild(li);
+                });
+            }
         }
         renderPagination();
-        updateRankingTitle(); // Update title after data load (especially for query)
+        updateRankingTitle();
       } catch (e) {
-          loadingMessageElement.style.display = 'none';
+          if (loadingMessageElement) loadingMessageElement.style.display = 'none';
           console.error('Ranking processing error:', e);
-          leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${I18N['error-loading'] || 'Error processing ranks.'}</div>`;
+          if (leaderboardElement) leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${(I18N && I18N['error-loading']) || 'Error processing ranks.'}</div>`;
       }
     }
-
-    function renderPagination() { /* ... (same as before, ensure MAX_PAGES_TO_SHOW is used) ... */
+    function renderPagination() {
+        if (!paginationElement) return; // paginationElement の存在を確認
         paginationElement.innerHTML = '';
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-
         if (totalPages <= 1) return;
-
-        const prevLi = document.createElement('li');
-        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-        const prevA = document.createElement('a');
-        prevA.className = 'page-link'; prevA.href = '#'; prevA.innerHTML = '«';
-        prevA.setAttribute('aria-label', I18N['previous'] || 'Previous');
-        prevA.addEventListener('click', (e) => { e.preventDefault(); if (currentPage > 1) { currentPage--; updateURL(); loadRanking(); } });
-        prevLi.appendChild(prevA);
-        paginationElement.appendChild(prevLi);
-
+        const createPageItem = (text, pageNum, isDisabled = false, isActive = false, isRel = false) => {
+            const li = document.createElement('li');
+            li.className = `page-item ${isDisabled ? 'disabled' : ''} ${isActive ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link'; a.href = '#';
+            a.innerHTML = text;
+            if(isRel) a.setAttribute('aria-label', text === '«' ? ((I18N && I18N['previous']) || 'Previous') : ((I18N && I18N['next']) || 'Next'));
+            if (!isDisabled) {
+                a.addEventListener('click', (e) => { e.preventDefault(); currentPage = pageNum; updateUserURL(); loadRanking(); });
+            }
+            li.appendChild(a);
+            return li;
+        };
+        paginationElement.appendChild(createPageItem('«', currentPage - 1, currentPage === 1, false, true));
         let startPage = Math.max(1, currentPage - Math.floor(MAX_PAGES_TO_SHOW / 2));
         let endPage = Math.min(totalPages, startPage + MAX_PAGES_TO_SHOW - 1);
         if (endPage - startPage + 1 < MAX_PAGES_TO_SHOW && totalPages >= MAX_PAGES_TO_SHOW) {
             if (startPage === 1) endPage = Math.min(totalPages, MAX_PAGES_TO_SHOW);
             else startPage = Math.max(1, totalPages - MAX_PAGES_TO_SHOW + 1);
         }
-
         for (let i = startPage; i <= endPage; i++) {
-            const li = document.createElement('li');
-            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-            const a = document.createElement('a');
-            a.className = 'page-link'; a.href = '#'; a.textContent = i;
-            a.addEventListener('click', (e) => { e.preventDefault(); currentPage = i; updateURL(); loadRanking(); });
-            li.appendChild(a);
-            paginationElement.appendChild(li);
+            paginationElement.appendChild(createPageItem(i, i, false, i === currentPage));
         }
-
-        const nextLi = document.createElement('li');
-        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-        const nextA = document.createElement('a');
-        nextA.className = 'page-link'; nextA.href = '#'; nextA.innerHTML = '»';
-        nextA.setAttribute('aria-label', I18N['next'] || 'Next');
-        nextA.addEventListener('click', (e) => { e.preventDefault(); if (currentPage < totalPages) { currentPage++; updateURL(); loadRanking(); } });
-        nextLi.appendChild(nextA);
-        paginationElement.appendChild(nextLi);
+        paginationElement.appendChild(createPageItem('»', currentPage + 1, currentPage === totalPages, false, true));
     }
-
-    async function loadSelfRecord() { /* ... (same, but query leaderboard_highest_scores) ... */
+    async function loadSelfRecord() {
+      if (!selfRecordElement) return; // selfRecordElement の存在を確認
       const username = cookie('username');
       if (username) {
         try {
-          const { data, error } = await supabase
-            .from('leaderboard_highest_scores') // Query the view
+          const { data, error } = await supaClient // ★★★ supabase を supaClient に変更 ★★★
+            .from('leaderboard_highest_scores')
             .select('score, created_at')
             .eq('name', username)
-            .limit(1); // Should only be one record per name in this view
-
+            .limit(1);
           if (error) throw error;
           if (data && data.length > 0) {
             const record = data[0];
-            selfRecordElement.innerHTML = (I18N['self-record'] || '{name}\'s Record: Score {score} ({time})')
-              .replace('{name}', username)
-              .replace('{score}', record.score)
+            selfRecordElement.innerHTML = ((I18N && I18N['self-record']) || "{name}'s Record: Score {score} ({time})")
+              .replace('{name}', `<strong>${username}</strong>`)
+              .replace('{score}', `<strong>${record.score}</strong>`)
               .replace('{time}', formatDate(record.created_at));
           } else {
-            selfRecordElement.textContent = (I18N['no-self-record'] || 'No record found for {name}.').replace('{name}', username);
+            selfRecordElement.textContent = ((I18N && I18N['no-self-record']) || "No record found for {name}.").replace('{name}', username);
           }
         } catch (e) {
             console.error('Self record load error:', e);
-            selfRecordElement.textContent = I18N['no-name-tip'] || 'Play the game to save your record!';
+            selfRecordElement.textContent = (I18N && I18N['no-name-tip']) || 'Play the game to see your record!';
         }
       } else {
-        selfRecordElement.textContent = I18N['no-name-tip'] || 'Play the game to save your record!';
+        selfRecordElement.textContent = (I18N && I18N['no-name-tip']) || 'Play the game to see your record!';
       }
     }
-    
-    function updateURL() {
+    function updateUserURL() {
         const params = new URLSearchParams();
         if (currentRankingType !== 'all') params.set('type', currentRankingType);
         if (currentRankingType === 'query' && currentQuery) params.set('query', currentQuery);
         if (currentPage > 1) params.set('page', currentPage);
-        
         const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-        history.pushState(null, '', newRelativePathQuery);
+        history.pushState({type: currentRankingType, page: currentPage, query: currentQuery}, '', newRelativePathQuery);
     }
-
     function parseURLParams() {
         const params = new URLSearchParams(window.location.search);
         currentRankingType = params.get('type') || 'all';
         currentPage = parseInt(params.get('page')) || 1;
         currentQuery = params.get('query') || '';
-        
-        if (currentRankingType === 'query' && currentQuery) {
+        if (searchInput && currentRankingType === 'query' && currentQuery) { // searchInput の存在を確認
             searchInput.value = currentQuery;
         }
-
-        navLinks.forEach(l => {
-            l.classList.remove('active');
-            if (l.dataset.type === currentRankingType) {
-                l.classList.add('active');
-            }
-        });
-         if (currentRankingType === 'query' && !document.querySelector(`.navbar-nav .nav-link[data-type="query"].active`)){
-            // No explicit "query" tab, so keep 'all' or none active
-        } else if (!document.querySelector('.navbar-nav .nav-link.active')) {
-             document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
+        navLinks.forEach(l => l.classList.remove('active'));
+        const activeLink = document.querySelector(`.navbar-nav .nav-link[data-type="${currentRankingType}"]`);
+        if (activeLink) activeLink.classList.add('active');
+        else if (currentRankingType !== 'query') {
+             const allLink = document.querySelector('.navbar-nav .nav-link[data-type="all"]');
+             if (allLink) allLink.classList.add('active');
         }
     }
-
-    // Event Listeners
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
+    if (navLinks.length > 0) { // navLinks の存在を確認
+        navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const type = link.dataset.type;
+            if (type === currentRankingType && currentRankingType !== 'query') return;
+            currentRankingType = type;
+            currentPage = 1;
+            currentQuery = '';
+            if (searchInput) searchInput.value = '';
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            updateUserURL();
+            loadRanking();
+            updateRankingTitle();
+        });
+        });
+    }
+    if (searchForm) { // searchForm の存在を確認
+        searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        currentRankingType = link.dataset.type;
-        currentPage = 1;
-        currentQuery = '';
-        searchInput.value = '';
-        updateURL();
-        loadRanking();
-        navLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-      });
-    });
-
-    searchForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const queryText = searchInput.value.trim();
-      if (queryText) {
-        currentRankingType = 'query';
+        const queryText = searchInput ? searchInput.value.trim() : '';
+        currentRankingType = queryText ? 'query' : 'all';
         currentQuery = queryText;
         currentPage = 1;
-        updateURL();
-        loadRanking();
-        navLinks.forEach(l => l.classList.remove('active')); // Deactivate other tabs
-      } else { // Empty search, go to 'all'
-        currentRankingType = 'all';
-        currentQuery = '';
-        currentPage = 1;
-        updateURL();
-        loadRanking();
         navLinks.forEach(l => l.classList.remove('active'));
-        document.querySelector('.navbar-nav .nav-link[data-type="all"]').classList.add('active');
-      }
-    });
-
-    window.addEventListener('popstate', () => { // Handle browser back/forward
+        if (currentRankingType === 'all') {
+            const allLink = document.querySelector('.navbar-nav .nav-link[data-type="all"]');
+            if(allLink) allLink.classList.add('active');
+        }
+        updateUserURL();
+        loadRanking();
+        updateRankingTitle();
+        });
+    }
+    window.addEventListener('popstate', (event) => {
         parseURLParams();
         loadRanking();
+        updateRankingTitle();
     });
-
-    // Initial Load
     async function initializePage() {
-        await loadI18N(); // Load languages first
-        parseURLParams(); // Parse URL to set initial state
+        await loadI18N();
+        parseURLParams();
         loadRanking();
         loadSelfRecord();
     }
-
-    initializePage();
-
+    document.addEventListener('DOMContentLoaded', initializePage);
   </script>
 </body>
 </html>
