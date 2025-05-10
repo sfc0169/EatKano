@@ -1,493 +1,573 @@
-<!DOCTYPE html> <html lang="ja"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"> <title>Piano Tiles Game</title> <!-- jQuery --> <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Supabase SDK --> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> <!-- CreateJS SoundJS --> <script src="https://code.createjs.com/1.0.0/soundjs.min.js"></script> <style> html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #000; } /* ゲーム本体を包むコンテナ */ #gameBody { position: relative; width: 100%; height: 100%; overflow: hidden; } /* 黒タイルの背景レイヤー */ #GameLayerBG { position: fixed; top: 0; left: 50%; /* 以下の translateX(-50%) で常に横方向中央寄せ */ transform: translateX(-50%); /* 横幅は JS 側で blockSize*4 に動的に設定 */ height: 100%; pointer-events: none; } .GameLayer { position: absolute; /* translate3D を JS で動的に与える */ } .block { position: absolute; background: #111; pointer-events: auto; /* left/bottom/width/height は JS で動的に設定 */ } .block.t1 { background: #222; } .block.t2 { background: #333; } .block.t3 { background: #444; } .block.t4 { background: #555; } .block.t5 { background: #666; } .block.bad { background: red!important; } #GameTimeLayer { position: fixed; top: 0; left: 50%; transform: translateX(-50%); color: #fff; font-size: 1.2rem; text-align: center; width: 200px; pointer-events: none; } #GameScoreLayer.SHADE { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -30%); display: none; color: #fff; text-align: center; background: rgba(0,0,0,0.8); padding: 1rem; border-radius: 8px; z-index: 1000; } /* 簡易 Welcome/Setting UI */ #welcome, #setting, #btn_group { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); padding: 1rem; border-radius: 8px; z-index: 1000; } #setting, #btn_group { display: none; } button { margin: 0.5rem; } input { margin: 0.2rem; } </style> </head> <body onload="init()"> <!-- Welcome --> <div id="welcome"> <h1 data-i18n="title">Piano Tiles</h1> <button onclick="readyBtn()" data-i18n="start">Start</button> <div> <span data-i18n="mode">Mode:</span> <span id="mode"></span> </div> <button id="sound" onclick="changeSoundMode()" data-i18n="sound-on">Sound On</button> <button onclick="show_setting()" data-i18n="setting">Settings</button> </div> <!-- Setting --> <div id="setting"> <div><label data-i18n="username">Username</label><input id="username" type="text" data-placeholder-i18n="username"></div> <div><label data-i18n="message">Comment</label><input id="message" type="text" data-placeholder-i18n="message"></div> <div><label data-i18n="keyboard">Keys</label><input id="keyboard" type="text" placeholder="dfjk"></div> <div><label data-i18n="gameTime">Time</label><input id="gameTime" type="number" min="1"></div> <div> <button onclick="save_cookie()" data-i18n="save">Save</button> <button onclick="show_btn()" data-i18n="back">Back</button> </div> </div> <!-- Retry / Back ボタン --> <div id="btn_group"> <button onclick="replayBtn()" id="replay" data-i18n="replay">Retry</button> <button onclick="backBtn()" data-i18n="back">Back</button> </div> <!-- Score Layer --> <div id="GameScoreLayer" class="SHADE"> <div id="GameScoreLayer-text"></div> <div><span data-i18n="cps">CPS:</span> <span id="cps">0</span></div> <div><span data-i18n="score">Score:</span> <span id="GameScoreLayer-score">0</span></div> <div><span data-i18n="best">Best:</span> <span id="best">0</span></div> </div> <script> // ───────────────────────────────────────────────────────────── // Supabase 初期化 const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co'; const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…あなたのキー…'; const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-// ゲームモード定数
-const MODE_NORMAL   = 1,
-MODE_ENDLESS  = 2,
-MODE_PRACTICE = 3;
+// IMPORTANT: Make sure to include the Supabase SDK in your HTML file before this script:
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-// ─── Supabase へ結果を送信 ────────────────────────────────
-async function SubmitResultsToSupabase(){
-const name    = ($('#username').val()||'').trim();
-const comment = ($('#message').val()||'').trim();
-if(!name) return; // ユーザー名未設定なら送信しない
-const score = _gameScore;
-const { data, error } = await supaClient
-.from('leaderboard')
-.insert([{ name, score, comment }]);
-if(error){
-alert('スコア保存エラー: '+error.message);
-}
-}
+const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 
-// ─── I18N ローダ ───────────────────────────────────────
-function getJsonI18N(){
-const LANGUAGES = [
-{ regex:/^zh\b/, lang:'zh' },
-{ regex:/^ja\b/, lang:'ja' },
-{ regex:/.*/,   lang:'en'}
-];
-const lang = LANGUAGES.find(l=>l.regex.test(navigator.language)).lang;
-let data = null;
-$.ajax({
-url:./static/i18n/${lang}.json,
-dataType:'json',
-async:false,
-success:d=>data=d,
-error:()=>{
-console.warn(lang+'.json がありません。English にフォールバック');
-$.ajax({
-url:'./static/i18n/en.json',
-dataType:'json',
-async:false,
-success:d=>data=d,
-error:()=>{
-console.error('en.json もありません。');
-data={};
-}
-});
-}
-});
-data.lang = lang;
-return data;
-}
-const I18N = getJsonI18N();
-$(function(){
-$('[data-i18n]').each(function(){
-const key = this.dataset.i18n;
-if(I18N[key]!=null) $(this).text(I18N[key]);
-});
-$('[data-placeholder-i18n]').each(function(){
-const key = this.dataset.placeholderI18n;
-if(I18N[key]!=null) $(this).attr('placeholder', I18N[key]);
-});
-if(I18N.lang) $('html').attr('lang', I18N.lang);
-});
+// ─── Supabase Client Initialization ───
+const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// IMPORTANT: REPLACE WITH YOUR ACTUAL SUPABASE ANONYMOUS KEY
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // 提供されたキーを使用
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ─── End of Supabase Client Initialization ───
 
-// ─── グローバル変数群 ─────────────────────────────────
-let isDesktop = !/(ipad|iphone|ipod|android|windows phone)/i.test(navigator.userAgent);
-let map = {d:1, f:2, j:3, k:4};
-let body, blockSize, GameLayer = [], GameLayerBG, GameTimeLayer, touchArea=[];
-let transform, transitionDuration, welcomeLayerClosed;
-let mode = MODE_NORMAL, soundMode = 'on';
+(function(w) {
 
-// ゲーム進行管理
-let _gameBBList = [], _gameBBListIndex = 0;
-let _gameOver = false, _gameStart = false;
-let _gameSettingNum=20, _gameTime, _gameTimeNum, _gameScore, _date1, deviationTime;
-let _gameStartTime, _gameStartDatetime;
+    // ─── Supabase Submit Score Function (Replaces old SubmitResults and encrypt) ───
+    async function SubmitResultsToSupabase() {
+        const usernameVal = ($("#username").val() || '').trim(); // Get value from HTML input
+        const messageVal = ($("#message").val() || '').trim();   // Get value from HTML input
 
-// ─── 初期化関数 ────────────────────────────────────────
-window.init = function(){
-// ゲームレイヤーを #gameBody 内に生成
-if($('#GameLayerBG').length===0){
-$('#gameBody').append(createGameLayer());
-}
-showWelcomeLayer();
-body = document.getElementById('gameBody') || document.body;
-body.style.height = window.innerHeight+'px';
-// transform, transitionDuration 検出
-if('webkitTransform' in body.style)      transform='webkitTransform';
-else if('msTransform' in body.style)     transform='msTransform';
-else                                      transform='transform';
-transitionDuration = transform.replace(/ransform/g,'ransitionDuration');
-GameTimeLayer = document.getElementById('GameTimeLayer');
-GameLayerBG   = document.getElementById('GameLayerBG');
-// 各 GameLayer
-GameLayer = [
-document.getElementById('GameLayer1'),
-document.getElementById('GameLayer2')
-];
-GameLayer[0].children = GameLayer[0].querySelectorAll('div.block');
-GameLayer[1].children = GameLayer[1].querySelectorAll('div.block');
-// タッチ/クリックイベント設定
-if(GameLayerBG){
-GameLayerBG.ontouchstart = gameTapEvent;
-GameLayerBG.onmousedown  = gameTapEvent;
-}
-gameInit();
-initSetting();
-window.addEventListener('resize',refreshSize,false);
-// キーボード対応 (desktop)
-if(isDesktop){
-document.onkeydown = e=>{
-let k=e.key.toLowerCase();
-if(map[k]) click(map[k]);
-};
-}
-};
+        if (!usernameVal) {
+            // console.log("Username not entered in settings. Score will not be submitted to Supabase.");
+            // alert("ユーザー名が設定画面で入力されていません。スコアはランキングに登録されません。"); // Optional: Notify user
+            return; // Do not submit if username is empty
+        }
 
-// ─── モード取得/設定 ───────────────────────────────────
-function getMode()      { return cookie('gameMode')?parseInt(cookie('gameMode')):MODE_NORMAL; }
-function getSoundMode() { return cookie('soundMode') || 'on'; }
-window.changeSoundMode = function(){
-soundMode = (soundMode==='on'?'off':'on');
-$('#sound').text(I18N[soundMode==='on'?'sound-on':'sound-off']);
-cookie('soundMode', soundMode, 100);
-};
-function modeToString(m){
-return m===MODE_NORMAL?I18N.normal:
-m===MODE_ENDLESS?I18N.endless:
-I18N.practice;
-}
-window.changeMode = function(m){
-mode = m;
-cookie('gameMode', m, 100);
-$('#mode').text(modeToString(m));
-};
+        const scoreToSubmit = _gameScore; // Use the current game score
 
-// ─── Welcome → ゲーム開始 ─────────────────────────────
-window.readyBtn = function(){
-closeWelcomeLayer();
-updatePanel();
-};
-function showWelcomeLayer(){
-welcomeLayerClosed = false;
-$('#mode').text(modeToString(mode));
-$('#welcome').show();
-}
-function closeWelcomeLayer(){
-welcomeLayerClosed = true;
-$('#welcome').hide();
-}
+        // console.log(`Attempting to submit to Supabase: Name=${usernameVal}, Score=${scoreToSubmit}, Comment=${messageVal}`);
 
-// ─── 画面サイズ変化対応 ───────────────────────────────
-let refreshSizeTime;
-function refreshSize(){
-clearTimeout(refreshSizeTime);
-refreshSizeTime = setTimeout(_refreshSize,200);
-}
-function _refreshSize(){
-if(!body) body = document.getElementById('gameBody') || document.body;
-countBlockSize();
-// 各ブロック位置・サイズ調整
-GameLayer.forEach(box=>{
-box.children.forEach((r,j)=>{
-r.style.left   = (j%4)*blockSize+'px';
-r.style.bottom = Math.floor(j/4)*blockSize+'px';
-r.style.width  = blockSize+'px';
-r.style.height = blockSize+'px';
-});
-});
-// 縦スクロール位置も再配置
-let f, a;
-if(GameLayer[0].y > GameLayer[1].y){ f=GameLayer[0]; a=GameLayer[1]; }
-else                                { f=GameLayer[1]; a=GameLayer[0]; }
-let y = (_gameBBListIndex % 10)*blockSize;
-f.y = y;
-f.style[transform] = 'translate3D(0,'+y+'px,0)';
-a.y = y - blockSize * Math.floor(f.children.length/4);
-a.style[transform] = 'translate3D(0,'+a.y+'px,0)';
-}
+        const { data, error } = await supaClient
+            .from('leaderboard') // Ensure this is your table name
+            .insert([
+                { name: usernameVal, score: scoreToSubmit, comment: messageVal }
+                // created_at is expected to be set by DB (DEFAULT now())
+            ]);
 
-// ─── ブロックサイズ・中央寄せ計算 ─────────────────────
-function countBlockSize(){
-blockSize = body.offsetWidth / 4;
-body.style.height = window.innerHeight + 'px';
-if(GameLayerBG){
-// 幅を 4×blockSize に固定し、中央寄せ
-GameLayerBG.style.width  = (blockSize4) + 'px';
-GameLayerBG.style.left   = '50%';
-GameLayerBG.style[transform] = 'translateX(-50%)';
-GameLayerBG.style.height = window.innerHeight + 'px';
-}
-touchArea[0] = window.innerHeight;
-touchArea[1] = window.innerHeight - blockSize3;
-}
+        if (error) {
+            console.error('Supabase score submission error:', error);
+            alert('スコアの保存に失敗しました。エラー: ' + error.message);
+        } else {
+            // console.log('Supabase score submission successful:', data);
+            // alert('スコアがランキングに保存されました！'); // Optional: Notify user of success
+        }
+    }
+    // ─── End of Supabase Submit Score Function ───
 
-// ─── ゲーム初期化 / リスタート ───────────────────────
-function gameInit(){
-if(createjs && createjs.Sound){
-createjs.Sound.registerSound({src:"./static/music/err.mp3",id:"err"});
-createjs.Sound.registerSound({src:"./static/music/end.mp3",id:"end"});
-createjs.Sound.registerSound({src:"./static/music/tap.mp3",id:"tap"});
-}
-gameRestart();
-}
-function gameRestart(){
-_gameBBList = [];
-_gameBBListIndex = 0;
-_gameScore = 0;
-_gameOver = false;
-_gameStart = false;
-_gameSettingNum = parseInt(cookie('gameTime')) || 20;
-_gameTimeNum = _gameSettingNum;
-countBlockSize();
-if(blockSize>0){
-refreshGameLayer(GameLayer[0]);
-refreshGameLayer(GameLayer[1], 1);
-}
-updatePanel();
-}
+    function getJsonI18N() {
+        const LANGUAGES = [
+            { regex: /^zh\b/, lang: 'zh' },
+            { regex: /^ja\b/, lang: 'ja' },
+            { regex: /.*/, lang: 'en'}
+        ];
+        const lang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en';
+        
+        let i18nData = null; // Initialize to null
+        $.ajax({
+            url: `./static/i18n/${lang}.json`,
+            dataType: 'json',
+            method: 'GET',
+            async: false, // Synchronous: Blocks execution until complete.
+            success: data => i18nData = data, // Assign to local i18nData
+            error: () => {
+                // alert('找不到语言文件: ' + lang); // Original alert
+                console.warn('Language file not found: ' + lang + '.json. Falling back to English.');
+                $.ajax({
+                    url: `./static/i18n/en.json`,
+                    dataType: 'json',
+                    method: 'GET',
+                    async: false,
+                    success: data => i18nData = data,
+                    error: () => {
+                        console.error('English language file also not found.');
+                        i18nData = {}; // Assign empty object to prevent errors
+                    }
+                });
+            }
+        });
+        return i18nData;
+    }
 
-// ─── ゲーム開始 / タイマー ────────────────────────────
-function gameStart(){
-_date1 = new Date();
-_gameStartDatetime = _date1.getTime();
-_gameStart = true;
-_gameStartTime = 0;
-clearInterval(_gameTime);
-_gameTime = setInterval(timer, 1000);
-}
-function timer(){
-_gameTimeNum--;
-_gameStartTime++;
-if(mode===MODE_NORMAL && _gameTimeNum<=0){
-GameTimeLayer.innerHTML = I18N['time-up'] + '!';
-gameOver();
-if(GameLayerBG) GameLayerBG.classList.add('flash');
-if(soundMode==='on' && createjs.Sound) createjs.Sound.play("end");
-}
-updatePanel();
-}
+    const I18N = getJsonI18N();
 
-// ─── パネル更新 ─────────────────────────────────────
-function updatePanel(){
-if(!GameTimeLayer) return;
-if(mode===MODE_NORMAL){
-if(!_gameOver) GameTimeLayer.innerHTML = 'TIME:' + Math.ceil(_gameTimeNum);
-}
-else if(mode===MODE_ENDLESS){
-let cps = _gameStartDatetime ? (_gameScore/((new Date().getTime()-_gameStartDatetime)/1000)) : 0;
-GameTimeLayer.innerHTML = 'CPS:' + (cps? cps.toFixed(2) : (I18N['calculating']||'...'));
-}
-else{
-GameTimeLayer.innerHTML = 'SCORE:' + _gameScore;
-}
-}
+    // Apply I18N texts after DOM is ready
+    $(function() {
+        if (I18N) { // Check if I18N was loaded successfully
+            $('[data-i18n]').each(function() {
+                const key = this.dataset.i18n;
+                if (I18N[key] !== undefined) {
+                    $(this).text(I18N[key]);
+                }
+            });
+            $('[data-placeholder-i18n]').each(function() {
+                const key = this.dataset.placeholderI18n;
+                if (I18N[key] !== undefined) {
+                    $(this).attr('placeholder', I18N[key]);
+                }
+            });
+            if (I18N['lang']) {
+                $('html').attr('lang', I18N['lang']);
+            }
+        }
+    });
 
-// ─── 誤タップ / 正常タップ判定 ───────────────────────
-let _ttreg=/ t{1,2}(\d+)/,
-_clearttClsReg=/ t{1,2}\d+| bad/;
-function refreshGameLayer(box, loop, offset){
-if(!box||!box.children||blockSize<=0) return;
-let i = Math.floor(Math.random()*4) + (loop?0:4);
-for(let j=0;j<box.children.length;j++){
-let r=box.children[j];
-r.style.left   = (j%4)*blockSize+'px';
-r.style.bottom = Math.floor(j/4)*blockSize+'px';
-r.style.width  = blockSize+'px';
-r.style.height = blockSize+'px';
-r.className = r.className.replace(_clearttClsReg,'');
-r.notEmpty = false;
-if(i===j){
-_gameBBList.push({cell:i%4, id:r.id});
-r.className += ' t'+(Math.floor(Math.random()*5)+1);
-r.notEmpty = true;
-i = (Math.floor(j/4)+1)4 + Math.floor(Math.random()4);
-}
-}
-if(loop){
-box.style[transitionDuration] = '0ms';
-box.style.display = 'none';
-box.y = -blockSize(Math.floor(box.children.length/4)+(offset||0));
-box.style[transform] = 'translate3D(0,'+box.y+'px,0)';
-setTimeout(()=>{ box.style.display='block'; },50);
-} else {
-box.y = 0;
-box.style[transform] = 'translate3D(0,0,0)';
-}
-box.style[transitionDuration] = '150ms';
-}
-function gameLayerMoveNextRow(){
-GameLayer.forEach(g=>{
-if(!g||!g.children) return;
-g.y += blockSize;
-if(g.y > blockSize(Math.floor(g.children.length/4))){
-refreshGameLayer(g,1,-1);
-} else {
-g.style[transform] = 'translate3D(0,'+g.y+'px,0)';
-}
-});
-}
+    let isDesktop = !navigator['userAgent'].match(/(ipad|iphone|ipod|android|windows phone)/i);
+    let fontunit = isDesktop ? 20 : ((window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth) / 320) * 10;
+    document.write('<style type="text/css">' +
+        'html,body {font-size:' + (fontunit < 30 ? fontunit : '30') + 'px;}' +
+        (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
+            '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display:none;}}') + // landscape display:none as per original for mobile
+        '</style>');
 
-function gameTapEvent(e){
-if(_gameOver) return false;
-let tar = e.target;
-let cy = e.clientY || (e.targetTouches && e.targetTouches[0].clientY) || 0;
-let cx = (e.clientX || (e.targetTouches && e.targetTouches[0].clientX) || 0)
-- (body?body.offsetLeft:0);
-if(_gameBBListIndex >= _gameBBList.length) return false;
-if(cy>touchArea[0] || cy<touchArea[1]) return false;
-let p = _gameBBList[_gameBBListIndex];
-let correct = document.getElementById(p.id);
-let hit = false;
-if(p.id===tar.id && tar.notEmpty) hit=true;
-else if(p.cell===0 && cx<blockSize && correct && correct.notEmpty) hit=true;
-else if(p.cell===1 && cx>blockSize && cx<2blockSize && correct && correct.notEmpty) hit=true;
-else if(p.cell===2 && cx>2blockSize && cx<3blockSize && correct && correct.notEmpty) hit=true;
-else if(p.cell===3 && cx>3blockSize && correct && correct.notEmpty) hit=true;
+    let map = {'d': 1, 'f': 2, 'j': 3, 'k': 4};
+    if (isDesktop) {
+        if (!document.getElementById('gameBody')) { // Only write if not exists (though init should handle this)
+             document.write('<div id="gameBody"></div>');
+        }
+        document.onkeydown = function (e) {
+            let key = e.key.toLowerCase();
+            if (map.hasOwnProperty(key)) { // More direct check
+                click(map[key]);
+            }
+        }
+    }
 
-if(hit){
-if(!_gameStart) gameStart();
-if(soundMode==='on' && createjs.Sound) createjs.Sound.play("tap");
-if(correct){
-correct.className = correct.className.replace(_ttreg,' tt$1');
-correct.notEmpty = false;
-}
-_gameBBListIndex++;
-_gameScore++;
-updatePanel();
-gameLayerMoveNextRow();
-} else if(_gameStart && tar.classList && tar.classList.contains('block') && !tar.notEmpty){
-if(soundMode==='on' && createjs.Sound) createjs.Sound.play("err");
-tar.classList.add('bad');
-if(mode===MODE_PRACTICE){
-setTimeout(()=>tar.classList.remove('bad'),500);
-} else {
-gameOver();
-}
-}
-return false;
-}
+    let body, blockSize, GameLayer = [],
+        GameLayerBG, touchArea = [],
+        GameTimeLayer;
+    let transform, transitionDuration, welcomeLayerClosed;
 
-// ─── ゲームオーバー処理 ─────────────────────────────────
-function gameOver(){
-_gameOver = true;
-clearInterval(_gameTime);
-updatePanel();
-setTimeout(()=>{
-if(GameLayerBG) GameLayerBG.classList.remove('flash');
-showGameScoreLayer(getCPS());
-$('#replay').focus();
-},1500);
-}
-function getCPS(){
-if(!_gameStartDatetime) return 0;
-let t=(new Date().getTime()-_gameStartDatetime)/1000;
-return t>0? _gameScore/t : 0;
-}
+    let mode = getMode();
+    let soundMode = getSoundMode();
 
-// ─── クリエイト HTML ───────────────────────────────────
-function createGameLayer(){
-let html = '<div id="GameLayerBG">';
-for(let i=1;i<=2;i++){
-html += <div id="GameLayer${i}" class="GameLayer">;
-for(let j=0;j<10;j++){
-for(let k=0;k<4;k++){
-let num = k + j*4;
-html += <div id="GameLayer${i}-${num}" num="${num}" class="block${k?' bl':''}"></div>;
-}
-}
-html += '</div>';
-}
-html += '</div>';
-html += '<div id="GameTimeLayer" class="text-center"></div>';
-return html;
-}
+    w.init = function() {
+        // Insert game layer HTML if not already present
+        if (!document.getElementById('GameLayerBG')) {
+            document.body.insertAdjacentHTML('afterbegin', createGameLayer());
+        }
 
-// ─── スコア表示 ───────────────────────────────────────
-function showGameScoreLayer(cps){
-let $l = $('#GameScoreLayer');
-// 最後に押したタイルの色を bgcN に
-let cls = 'bgc1';
-let last = _gameBBList[_gameBBListIndex-1];
-if(last){
-let c = (document.getElementById(last.id)||{}).className.match(_ttreg);
-if(c && c[1]) cls = 'bgc'+c[1];
-}
-$l.attr('class','SHADE '+cls);
-$('#GameScoreLayer-text').html(shareText(cps));
-let displayScore = (mode===MODE_ENDLESS? cps : _gameScore);
-let best = getBestScore(displayScore);
-$l.css('color', (mode!==MODE_NORMAL||legalDeviationTime())? '':'red' );
-$('#cps').text(cps.toFixed(2));
-$('#score').text(displayScore.toFixed(mode===MODE_ENDLESS?2:0));
-$('#GameScoreLayer-score').css('display', mode===MODE_ENDLESS?'none':'block');
-$('#best').text(best.toFixed(mode===MODE_ENDLESS?2:0));
-$l.show();
-}
-function hideGameScoreLayer(){
-$('#GameScoreLayer').hide();
-}
+        showWelcomeLayer();
+        body = document.getElementById('gameBody') || document.body;
+        body.style.height = window.innerHeight + 'px';
 
-// ─── リトライ / 戻る ─────────────────────────────────
-window.replayBtn = function(){
-gameRestart();
-hideGameScoreLayer();
-};
-window.backBtn = function(){
-gameRestart();
-hideGameScoreLayer();
-showWelcomeLayer();
-};
+        transform = typeof (body.style.webkitTransform) !== 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !==
+        'undefined' ? 'msTransform' : 'transform');
+        transitionDuration = transform.replace(/ransform/g, 'ransitionDuration');
 
-// ─── シェアテキスト & Supabase 送信呼び出し ─────────────
-function shareText(cps){
-if(mode===MODE_NORMAL){
-let d2=new Date();
-deviationTime = d2.getTime() - (_date1?_date1.getTime():d2.getTime());
-if(!legalDeviationTime()){
-return I18N['time-over'] + ((deviationTime/1000)-_gameSettingNum).toFixed(2) + 's';
-}
-SubmitResultsToSupabase();
-}
-if(cps<=5)  return I18N['text-level-1'];
-if(cps<=8)  return I18N['text-level-2'];
-if(cps<=10) return I18N['text-level-3'];
-if(cps<=15) return I18N['text-level-4'];
-return I18N['text-level-5'];
-}
+        GameTimeLayer = document.getElementById('GameTimeLayer');
+        GameLayerBG = document.getElementById('GameLayerBG'); // Should exist now
 
-// ─── Cookie ユーティリティ ───────────────────────────
-function toStr(o){ return (typeof o==='object')? JSON.stringify(o): String(o); }
-function cookie(name, value, days){
-if(value!==undefined){
-let expires = '';
-if(days){
-let d=new Date();
-d.setTime(d.getTime()+days864e5);
-expires = ';expires='+d.toUTCString();
-}
-document.cookie = name+'='+escape(toStr(value))+expires+';path=/';
-return true;
-}
-let m = document.cookie.match('(?:^|;)\s'+name+'=([^;]+)');
-if(m){
-let v = unescape(m[1]);
-try{ if((v[0]=='{'&&v.slice(-1)=='}')||(v[0]=='['&&v.slice(-1)==']')) return JSON.parse(v); }
-catch(e){}
-if(!isNaN(parseFloat(v))&&isFinite(v)) return parseFloat(v);
-return v;
-}
-return null;
-}
+        GameLayer = []; // Clear and re-populate
+        const gameLayer1 = document.getElementById('GameLayer1');
+        const gameLayer2 = document.getElementById('GameLayer2');
 
-// ─── その他 UI 初期値ロード ──────────────────────────
-function initSetting(){
-$('#username').val(cookie('username')||'');
-$('#message').val(cookie('message')||'');
-let kb = cookie('keyboard');
-if(kb && kb.length===4){
-$('#keyboard').val(kb);
-map = {};
-map[kb[0]] = 1;
-map[kb[1]] = 2;
-map[kb[2]] = 3;
-map[kb[3]] = 4;
-}
-let gt = cookie('gameTime');
-if(gt) {
-$('#gameTime').val(gt);
-_gameSettingNum = parseInt(gt) || _gameSettingNum;
-}
-let titleVal = cookie('title');
-if(titleVal){
-$('title').text(titleVal);
-$('#title').val(titleVal);
-}
-}
+        if (gameLayer1 && gameLayer2) {
+            GameLayer.push(gameLayer1);
+            GameLayer[0].children = gameLayer1.querySelectorAll('div.block'); // Select only .block children
+            GameLayer.push(gameLayer2);
+            GameLayer[1].children = gameLayer2.querySelectorAll('div.block');
+        } else {
+            console.error("GameLayer1 or GameLayer2 not found in init. HTML structure might be incorrect or not yet rendered.");
+            return;
+        }
 
-// ─── 設定パネル／戻る表示切替 ────────────────────────
-window.show_setting = function(){
-$('#welcome,#btn_group').hide();
-$('#setting').show();
-$('#sound').text(soundMode==='on'? I18N['sound-on']:I18N['sound-off']);
-};
-window.show_btn = function(){
-$('#setting').hide();
-$('#welcome,#btn_group').show();
-};
+        if (GameLayerBG) {
+            if (GameLayerBG.ontouchstart === null) {
+                GameLayerBG.ontouchstart = gameTapEvent;
+            } else {
+                GameLayerBG.onmousedown = gameTapEvent;
+            }
+        } else {
+            console.error("GameLayerBG not found in init.");
+            return;
+        }
+
+        gameInit();
+        initSetting();
+        window.addEventListener('resize', refreshSize, false);
+    }
+
+    // --- All other functions (getMode, getSoundMode, game logic, UI updates) ---
+    // --- are kept as close to the original as possible, with minor fixes ---
+    // --- for robustness or to align with previous discussions.        ---
+
+    function getMode() { // Original
+        const modeCookie = cookie('gameMode');
+        return modeCookie ? parseInt(modeCookie) : MODE_NORMAL;
+    }
+
+    function getSoundMode() { // Original
+        return cookie('soundMode') || 'on';
+    }
+
+    w.changeSoundMode = function() { // Original, with I18N check
+        soundMode = (soundMode === 'on' ? 'off' : 'on');
+        if (I18N) $('#sound').text(I18N[soundMode === 'on' ? 'sound-on' : 'sound-off']);
+        cookie('soundMode', soundMode, 100);
+    }
+
+    function modeToString(m) { // Original, with I18N check
+        if(!I18N) return "Mode";
+        return m === MODE_NORMAL ? I18N['normal'] : (m === MODE_ENDLESS ? I18N['endless'] : I18N['practice']);
+    }
+
+    w.changeMode = function(m) { // Original
+        mode = m;
+        cookie('gameMode', m, 100);
+        $('#mode').text(modeToString(m));
+    }
+
+    w.readyBtn = function() { // Original
+        closeWelcomeLayer();
+        updatePanel();
+    }
+
+    w.winOpen = function() { // Original
+        window.open(location.href + '?r=' + Math.random(), 'nWin', 'height=500,width=320,toolbar=no,menubar=no,scrollbars=no');
+        let opened = window.open('about:blank', '_self');
+        if(opened) { opened.opener = null; opened.close(); }
+    }
+
+    let refreshSizeTime; // Original
+    function refreshSize() { clearTimeout(refreshSizeTime); refreshSizeTime = setTimeout(_refreshSize, 200); }
+
+    function _refreshSize() { // Original logic, with checks
+        if (!body) body = document.getElementById('gameBody') || document.body;
+        if (!body || body.offsetWidth === 0) return;
+        countBlockSize();
+        if (blockSize <= 0) return;
+        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) return; // Added ?. for safety
+
+        for (let i = 0; i < GameLayer.length; i++) {
+            let box = GameLayer[i];
+            for (let j = 0; j < box.children.length; j++) {
+                let r = box.children[j], rstyle = r.style;
+                rstyle.left = (j % 4) * blockSize + 'px';
+                rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
+                rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
+            }
+        }
+        let f, a;
+        if (GameLayer[0].y > GameLayer[1].y) { f = GameLayer[0]; a = GameLayer[1]; }
+        else { f = GameLayer[1]; a = GameLayer[0]; }
+        let y = ((_gameBBListIndex) % 10) * blockSize;
+        f.y = y; f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
+        a.y = f.y - blockSize * Math.floor(f.children.length / 4); // Adjusted a.y calculation
+        a.style[transform] = 'translate3D(0,' + a.y + 'px,0)';
+    }
+
+    function countBlockSize() { // Original logic, with checks
+        if (!body) body = document.getElementById('gameBody') || document.body;
+        if (!body || body.offsetWidth === 0) return;
+        blockSize = body.offsetWidth / 4;
+        body.style.height = window.innerHeight + 'px';
+        if (GameLayerBG) GameLayerBG.style.height = window.innerHeight + 'px';
+        touchArea[0] = window.innerHeight;
+        touchArea[1] = window.innerHeight - blockSize * 3;
+    }
+
+    let _gameBBList = [], _gameBBListIndex = 0, _gameOver = false, _gameStart = false,
+        _gameSettingNum=20, _gameTime, _gameTimeNum, _gameScore, _date1, deviationTime;
+    let _gameStartTime, _gameStartDatetime;
+
+    function gameInit() { // Original
+        if (typeof createjs !== 'undefined' && createjs.Sound) {
+            createjs.Sound.registerSound({ src: "./static/music/err.mp3", id: "err" });
+            createjs.Sound.registerSound({ src: "./static/music/end.mp3", id: "end" });
+            createjs.Sound.registerSound({ src: "./static/music/tap.mp3", id: "tap" });
+        }
+        gameRestart();
+    }
+
+    function gameRestart() { // Original, with checks
+        _gameBBList = []; _gameBBListIndex = 0; _gameScore = 0; _gameOver = false; _gameStart = false;
+        _gameSettingNum = parseInt(cookie('gameTime')) || 20;
+        _gameTimeNum = _gameSettingNum; _gameStartTime = 0; _date1 = null; deviationTime = 0;
+        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) { return; }
+        countBlockSize();
+        if (blockSize > 0) {
+            refreshGameLayer(GameLayer[0]); refreshGameLayer(GameLayer[1], 1);
+        }
+        updatePanel();
+    }
+
+    function gameStart() { // Original
+        _date1 = new Date(); _gameStartDatetime = _date1.getTime(); _gameStart = true; _gameStartTime = 0;
+        if(_gameTime) clearInterval(_gameTime);
+        _gameTime = setInterval(timer, 1000);
+    }
+
+    function getCPS() { // Original
+        const elapsedTime = (new Date().getTime() - _gameStartDatetime) / 1000;
+        if (elapsedTime <= 0 || _gameScore === 0) return 0;
+        let cps = _gameScore / elapsedTime;
+        return isNaN(cps) || !isFinite(cps) || _gameStartTime < 2 ? 0 : cps;
+    }
+
+    function timer() { // Original, with checks
+        _gameTimeNum--; _gameStartTime++;
+        if (mode === MODE_NORMAL && _gameTimeNum <= 0) {
+            if (GameTimeLayer && I18N) GameTimeLayer.innerHTML = (I18N['time-up'] || 'Time Up') + '!';
+            gameOver();
+            if (GameLayerBG) GameLayerBG.classList.add('flash');
+            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("end");
+        }
+        updatePanel();
+    }
+
+    function updatePanel() { // Original, with checks
+        if (!GameTimeLayer) GameTimeLayer = document.getElementById('GameTimeLayer');
+        if (!GameTimeLayer || !I18N) return;
+        if (mode === MODE_NORMAL) {
+            if (!_gameOver) GameTimeLayer.innerHTML = createTimeText(_gameTimeNum);
+        } else if (mode === MODE_ENDLESS) {
+            let cps = getCPS();
+            let text = (cps === 0 && _gameScore === 0 ? (I18N['calculating'] || 'Calculating...') : cps.toFixed(2));
+            GameTimeLayer.innerHTML = `CPS:${text}`;
+        } else { GameTimeLayer.innerHTML = `SCORE:${_gameScore}`; }
+    }
+
+    function focusOnReplay(){ // Corrected typo
+        const replayBtnEl = document.getElementById('replay');
+        if (replayBtnEl) replayBtnEl.focus();
+    }
+
+    function gameOver() { // Original, with className fix
+        _gameOver = true; if(_gameTime) clearInterval(_gameTime);
+        let cps = getCPS(); updatePanel();
+        setTimeout(function () {
+            if (GameLayerBG) GameLayerBG.classList.remove('flash'); // Use classList
+            showGameScoreLayer(cps);
+            focusOnReplay();
+        }, 1500);
+    }
+
+    // Removed: encrypt function
+
+    function createTimeText(n) { return 'TIME:' + Math.max(0, Math.ceil(n)); } // Original
+
+    let _ttreg = / t{1,2}(\d+)/, _clearttClsReg = / t{1,2}\d+| bad/; // Original
+
+    function refreshGameLayer(box, loop, offset) { // Original logic
+        if (!box?.children || blockSize <= 0) return;
+        let i = Math.floor(Math.random() * 1000) % 4 + (loop ? 0 : 4);
+        for (let j = 0; j < box.children.length; j++) {
+            let r = box.children[j], rstyle = r.style;
+            rstyle.left = (j % 4) * blockSize + 'px'; rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
+            rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
+            r.className = r.className.replace(_clearttClsReg, ''); r.notEmpty = false;
+            if (i === j) {
+                _gameBBList.push({ cell: i % 4, id: r.id });
+                r.className += ' t' + (Math.floor(Math.random() * 5) + 1); r.notEmpty = true;
+                i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 4);
+            }
+        }
+        if (loop) {
+            box.style[transitionDuration] = '0ms'; box.style.display = 'none';
+            box.y = -blockSize * (Math.floor(box.children.length / 4) + (offset || 0)); // `* loop` was likely redundant
+            box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
+            setTimeout(function () { box.style.display = 'block'; }, 50); // Simplified from nested setTimeout
+        } else {
+            box.y = 0; box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
+        }
+        box.style[transitionDuration] = '150ms';
+    }
+
+    function gameLayerMoveNextRow() { // Original logic
+        for (let i = 0; i < GameLayer.length; i++) {
+            let g = GameLayer[i]; if (!g?.children) continue;
+            g.y += blockSize;
+            if (g.y > blockSize * (Math.floor(g.children.length / 4))) {
+                refreshGameLayer(g, 1, -1);
+            } else { g.style[transform] = 'translate3D(0,' + g.y + 'px,0)'; }
+        }
+    }
+
+    function gameTapEvent(e) { // Original logic (当たり判定)
+        if (_gameOver) return false;
+        let tar = e.target;
+        let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
+        let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
+        if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return false;
+        let p = _gameBBList[_gameBBListIndex];
+        if ((touchArea[1] === undefined || blockSize <= 0) && body && body.offsetWidth > 0) countBlockSize();
+        if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) return false;
+
+        // 元の判定ロジックを忠実に再現
+        const correctBlackTileElement = document.getElementById(p.id); // 常に正しい黒タイルを参照
+        if ((p.id === tar.id && tar.notEmpty) || // 黒タイル直接タップ
+            (p.cell === 0 && eventX < blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
+            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
+            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
+            (p.cell === 3 && eventX > 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty)
+        ) {
+            if (!_gameStart) gameStart();
+            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("tap");
+            
+            // target は p.id の要素に強制 (列タップの場合も正しいタイルに作用させるため)
+            const actualTarget = document.getElementById(p.id);
+            if (actualTarget) { // 要素が存在することを確認
+                actualTarget.className = actualTarget.className.replace(_ttreg, ' tt$1');
+                actualTarget.notEmpty = false;
+            }
+
+            _gameBBListIndex++;
+            _gameScore++;
+            updatePanel();
+            gameLayerMoveNextRow();
+        } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
+            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
+            tar.classList.add('bad');
+            if (mode === MODE_PRACTICE) {
+                setTimeout(() => { tar.classList.remove('bad'); }, 500);
+            } else {
+                gameOver();
+            }
+        }
+        return false;
+    }
+
+    function createGameLayer() { // Original
+        let html = '<div id="GameLayerBG">';
+        for (let i = 1; i <= 2; i++) {
+            let id = 'GameLayer' + i;
+            html += `<div id="${id}" class="GameLayer">`;
+            for (let j = 0; j < 10; j++) {
+                for (let k = 0; k < 4; k++) {
+                    html += `<div id="${id}-${k + j * 4}" num="${k + j * 4}" class="block${k ? ' bl' : ''}"></div>`;
+                }
+            }
+            html += '</div>';
+        }
+        html += '</div><div id="GameTimeLayer" class="text-center"></div>';
+        return html;
+    }
+
+    function closeWelcomeLayer() { /* Original */ welcomeLayerClosed = true; $('#welcome').css('display', 'none'); updatePanel(); }
+    function showWelcomeLayer() { /* Original */ welcomeLayerClosed = false; $('#mode').text(modeToString(mode)); $('#welcome').css('display', 'block'); }
+    function getBestScore(currentScore) { /* Original (bast->best fix) */
+        let cookieName = (mode === MODE_NORMAL ? 'best-score' : 'endless-best-score');
+        let best = parseFloat(cookie(cookieName)) || 0;
+        if (currentScore > best) { best = currentScore; cookie(cookieName, best.toFixed(mode === MODE_ENDLESS ? 2 : 0), 100); }
+        return best;
+    }
+    function scoreToString(s) { /* Original */ return mode === MODE_ENDLESS ? parseFloat(s).toFixed(2) : String(Math.floor(s)); }
+    function legalDeviationTime() { /* Original */ return _date1 ? deviationTime < (_gameSettingNum + 3) * 1000 : true; }
+
+    function showGameScoreLayer(cps) { // Original, with minor jQuery safety
+        const gameScoreLayer = $('#GameScoreLayer');
+        if (_gameBBList.length > 0 && _gameBBListIndex > 0 && _gameBBList[_gameBBListIndex - 1]) {
+            const lastBlock = $(`#${_gameBBList[_gameBBListIndex - 1].id}`);
+            if (lastBlock.length) {
+                const classAttr = lastBlock.attr('class');
+                if (classAttr) {
+                    const cMatch = classAttr.match(_ttreg);
+                    if (cMatch && cMatch[1]) gameScoreLayer.attr('class', 'BBOX SHADE bgc' + cMatch[1]);
+                    else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+                } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+            } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+        } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+        
+        $('#GameScoreLayer-text').html(shareText(cps)); // Calls Supabase submission
+        let scoreVal = (mode === MODE_ENDLESS ? cps : _gameScore);
+        let best = getBestScore(scoreVal);
+        gameScoreLayer.css('color', (mode !== MODE_NORMAL || legalDeviationTime()) ? '' : 'red');
+        $('#cps').text(cps.toFixed(2));
+        $('#score').text(scoreToString(_gameScore));
+        $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : 'flex');
+        $('#best').text(scoreToString(best));
+        gameScoreLayer.css('display', 'block');
+    }
+
+    function hideGameScoreLayer() { /* Original */ $('#GameScoreLayer').css('display', 'none'); }
+    w.replayBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); }
+    w.backBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); showWelcomeLayer(); }
+
+    function shareText(cps) { // Modified for Supabase
+        if (mode === MODE_NORMAL) {
+            let date2 = new Date(); if (!_date1) _date1 = date2;
+            deviationTime = (date2.getTime() - _date1.getTime());
+            if (!legalDeviationTime()) {
+                return (I18N ? I18N['time-over'] : 'Time over by: ') + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
+            }
+            SubmitResultsToSupabase(); // ★★★ Supabase送信 ★★★
+        }
+        if (!I18N) return "Score: " + cps.toFixed(2);
+        if (cps <= 5) return I18N['text-level-1'] || 'Lvl 1'; if (cps <= 8) return I18N['text-level-2'] || 'Lvl 2';
+        if (cps <= 10) return I18N['text-level-3'] || 'Lvl 3'; if (cps <= 15) return I18N['text-level-4'] || 'Lvl 4';
+        return I18N['text-level-5'] || 'Lvl 5';
+    }
+
+    function toStr(obj) { /* Original */ if (typeof obj === 'object') { try {return JSON.stringify(obj);} catch(e){return String(obj);}} else { return String(obj); } }
+    function cookie(name, value, timeInDays) { /* Modified (no eval) */
+        if (name) {
+            if (value !== undefined) {
+                let expires = ""; if (timeInDays) { let date = new Date(); date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000)); expires = "; expires=" + date.toUTCString(); }
+                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/"; return true;
+            } else {
+                let nameEQ = name + "="; let ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) {
+                        let valStr = unescape(c.substring(nameEQ.length, c.length));
+                        try { if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr); if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr); } catch (e) {}
+                        return valStr;
+                    }
+                } return null;
+            }
+        }
+        let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
+    }
+
+    // Removed: document.write(createGameLayer()); // Handled in w.init
+
+    function initSetting() { /* Original */
+        $("#username").val(cookie("username") || ""); $("#message").val(cookie("message") || "");
+        const titleVal = cookie("title"); if (titleVal) { $('title').text(titleVal); $('#title').val(titleVal); }
+        const keyboardVal = cookie("keyboard");
+        if (keyboardVal) {
+            const kbStr = String(keyboardVal).toLowerCase(); $("#keyboard").val(kbStr);
+            if(kbStr.length === 4) { map = {}; map[kbStr.charAt(0)] = 1; map[kbStr.charAt(1)] = 2; map[kbStr.charAt(2)] = 3; map[kbStr.charAt(3)] = 4; }
+        }
+        const gameTimeVal = cookie('gameTime');
+        if (gameTimeVal) { const gt = parseInt(gameTimeVal); if (!isNaN(gt) && gt > 0) { $('#gameTime').val(gt); _gameSettingNum = gt; } }
+        // gameRestart(); // Called from gameInit which is called from w.init
+    }
+
+    w.show_btn = function() { /* Original */ $('#btn_group').css('display', 'flex'); $('#desc').css('display', 'block'); $('#setting').css('display', 'none'); }
+    w.show_setting = function() { /* Original */
+        $('#btn_group').css('display', 'none'); $('#desc').css('display', 'none'); $('#setting').css('display', 'block');
+        if (I18N) $('#sound').text(soundMode === 'on' ? (I18N['sound-on'] || 'Sound: ON') : (I18N['sound-off'] || 'Sound: OFF'));
+    }
+    w.save_cookie = function() { /* Original */
+        const s = ['username', 'message', 'keyboard', 'title', 'gameTime'];
+        for (let k of s) { let v = $(`#${k}`).val(); if (v !== null && v !== undefined) cookie(k, String(v).trim(), 100); }
+        const gtVal = $('#gameTime').val(); if(gtVal){ const ngt = parseInt(gtVal); if(!isNaN(ngt) && ngt > 0) _gameSettingNum = ngt; }
+        initSetting();
+    }
+    function isnull(val) { /* Original */ if (val === null || val === undefined) return true; return String(val).replace(/(^\s*)|(\s*$)/g, '') === ''; }
+
+    // Removed: w.goRank()
+
+    function click(index) { /* Original logic (with target block finding adjusted) */
+        if (!welcomeLayerClosed || _gameOver || _gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return;
+        let p = _gameBBList[_gameBBListIndex];
+        const currentBlockEl = document.getElementById(p.id); if (!currentBlockEl) return;
+        const parentEl = currentBlockEl.parentElement; if (!parentEl) return;
+        const currentBlockNumAttr = currentBlockEl.getAttribute("num"); if(currentBlockNumAttr === null) return;
+        const currentBlockNum = parseInt(currentBlockNumAttr);
+        const rowStartNum = currentBlockNum - p.cell;
+        const targetCol = index - 1;
+        const targetGlobalNum = rowStartNum + targetCol;
+        let targetEl = null;
+        for (let i = 0; i < parentEl.children.length; i++) {
+            if (parentEl.children[i].getAttribute("num") === String(targetGlobalNum)) {
+                targetEl = parentEl.children[i]; break;
+            }
+        }
+        if (!targetEl) return;
+        let fakeEvent = { target: targetEl, clientX: (targetCol + 0.5) * blockSize + (body ? body.offsetLeft : 0), clientY: (touchArea[1] !== undefined ? (touchArea[0] + touchArea[1]) / 2 : window.innerHeight / 2) };
+        gameTapEvent(fakeEvent);
+    }
+
+    const clickBeforeStyle = $('<style id="clickBeforeStyleInjectedByJS"></style>').appendTo('head'); // Original
+    const clickAfterStyle = $('<style id="clickAfterStyleInjectedByJS"></style>').appendTo('head');  // Original
+    function saveImage(dom, callback) { /* Original */ if (dom.files && dom.files[0]) { let r = new FileReader(); r.onload = function() { callback(this.result); }; r.readAsDataURL(dom.files[0]); } }
+    w.getClickBeforeImage = function() { /* Original */ $('#click-before-image').trigger('click'); }
+    w.saveClickBeforeImage = function() { /* Original (with !important styles) */ const i = document.getElementById('click-before-image'); saveImage(i, r => { clickBeforeStyle.html(`.t1,.t2,.t3,.t4,.t5{background-size:contain!important;background-image:url(${r})!important;background-repeat:no-repeat!important;background-position:center!important;}`); }); }
+    w.getClickAfterImage = function() { /* Original */ $('#click-after-image').trigger('click'); }
+    w.saveClickAfterImage = function() { /* Original (with !important styles) */ const i = document.getElementById('click-after-image'); saveImage(i, r => { clickAfterStyle.html(`.tt1,.tt2,.tt3,.tt4,.tt5{background-size:contain!important;background-image:url(${r})!important;background-repeat:no-repeat!important;background-position:center!important;}`); }); }
 
 })(window);
-</script>
-
-</body> </html>
