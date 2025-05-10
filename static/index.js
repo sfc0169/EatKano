@@ -356,10 +356,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // 修正箇所: 間違ったタイルをタップした時に点滅させてから遅延処理
-        if (_gameOver) {
-            return false;
-        }
+    function gameTapEvent(e) { // Original logic (当たり判定)
+        if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
         let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
@@ -376,9 +374,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
             (p.cell === 3 && eventX > 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty)
         ) {
-            if (!_gameStart) {
-                gameStart();
-            }
+            if (!_gameStart) gameStart();
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("tap");
             
             // target は p.id の要素に強制 (列タップの場合も正しいタイルに作用させるため)
@@ -398,10 +394,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // ここが修正箇所: 赤い点滅エフェクトを表示するために遅延させる
-                setTimeout(() => { 
-                    gameOver(); 
-                }, 700); // アニメーション完了のために十分な時間（0.7秒）
+                // ここが修正ポイント！アニメーション表示のために遅延して gameOver を呼び出す
+                setTimeout(() => { gameOver(); }, 600); // 赤の点滅アニメーションが終わる時間（0.2秒×3回）後に実行
             }
         }
         return false;
