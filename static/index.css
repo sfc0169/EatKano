@@ -1,271 +1,291 @@
-/* Global Reset & Box Sizing */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box; /* Recommended for easier layouting */
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-    -ms-tap-highlight-color: rgba(0, 0, 0, 0);
-    -ms-user-select: none; /* Might be better to handle this with JS if needed for specific elements */
+/* static/index.css の修正案 */
+body {
+  font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
+  margin: 0;
+  padding: 0;
+  /* index.jsでフォントサイズが設定されるので、ここでは基本設定のみ */
 }
 
-html, body {
-    font-family: "Helvetica Neue", Helvetica, STHeiTi, sans-serif;
-    /* font-size will be set by index.js */
-}
-
-/* Loading Spinner (Original) */
+/* .loading クラスは現在HTMLには見当たらないが、元CSSにあったので残す */
 .loading {
-    background-image: url("data:image/gif;base64,R0lGODlhJQAlAJECAL3L2AYrTv///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgACACwAAAAAJQAlAAACi5SPqcvtDyGYIFpF690i8xUw3qJBwUlSadmcLqYmGQu6KDIeM13beGzYWWy3DlB4IYaMk+Dso2RWkFCfLPcRvFbZxFLUDTt21BW56TyjRep1e20+i+eYMR145W2eefj+6VFmgTQi+ECVY8iGxcg35phGo/iDFwlTyXWphwlm1imGRdcnuqhHeop6UAAAIfkEBQoAAgAsEAACAAQACwAAAgWMj6nLXAAh+QQFCgACACwVAAUACgALAAACFZQvgRi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwXABEADAADAAACBYyPqcsFACH5BAUKAAIALBUAFQAKAAsAAAITlGKZwWoMHYxqtmplxlNT7ixGAQAh+QQFCgACACwQABgABAALAAACBYyPqctcACH5BAUKAAIALAUAFQAKAAsAAAIVlC+BGL3Z3IlxUmUuhtR2LzHhsiEFACH5BAUKAAIALAEAEQAMAAMAAAIFjI+pywUAIfkEBQoAAgAsBQAFAAoACwAAAhOUYJnAagwdjGq2amXGU1PuLEYBACH5BAUKAAIALBAAAgAEAAsAAAIFhI+py1wAIfkEBQoAAgAsFQAFAAoACwAAAhWUL4AIvdnciXFSZS6G1HYvMeGyIQUAIfkEBQoAAgAsFwARAAwAAwAAAgWEj6nLBQAh+QQFCgACACwVABUACgALAAACE5RgmcBqDB2MarZqZcZTU+4sRgEAIfkEBQoAAgAsEAAYAAQACwAAAgWEj6nLXAAh+QQFCgACACwFABUACgALAAACFZQvgAi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwBABEADAADAAACBYSPqcsFADs=");
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: auto 60%;
+  background-image: url("data:image/gif;base64,R0lGODlhJQAlAJECAL3L2AYrTv///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQFCgACACwAAAAAJQAlAAACi5SPqcvtDyGYIFpF690i8xUw3qJBwUlSadmcLqYmGQu6KDIeM13beGzYWWy3DlB4IYaMk+Dso2RWkFCfLPcRvFbZxFLUDTt21BW56TyjRep1e20+i+eYMR145W2eefj+6VFmgTQi+ECVY8iGxcg35phGo/iDFwlTyXWphwlm1imGRdcnuqhHeop6UAAAIfkEBQoAAgAsEAACAAQACwAAAgWMj6nLXAAh+QQFCgACACwVAAUACgALAAACFZQvgRi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwXABEADAADAAACBYyPqcsFACH5BAUKAAIALBUAFQAKAAsAAAITlGKZwWoMHYxqtmplxlNT7ixGAQAh+QQFCgACACwQABgABAALAAACBYyPqctcACH5BAUKAAIALAUAFQAKAAsAAAIVlC+BGL3Z3IlxUmUuhtR2LzHhsiEFACH5BAUKAAIALAEAEQAMAAMAAAIFjI+pywUAIfkEBQoAAgAsBQAFAAoACwAAAhOUYJnAagwdjGq2amXGU1PuLEYBACH5BAUKAAIALBAAAgAEAAsAAAIFhI+py1wAIfkEBQoAAgAsFQAFAAoACwAAAhWUL4AIvdnciXFSZS6G1HYvMeGyIQUAIfkEBQoAAgAsFwARAAwAAwAAAgWEj6nLBQAh+QQFCgACACwVABUACgALAAACE5RgmcBqDB2MarZqZcZTU+4sRgEAIfkEBQoAAgAsEAAYAAQACwAAAgWEj6nLXAAh+QQFCgACACwFABUACgALAAACFZQvgAi92dyJcVJlLobUdi8x4bIhBQAh+QQFCgACACwBABEADAADAAACBYSPqcsFADs=");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: auto 60%;
 }
 
-/* Start Button Style (Original, might be overridden by Bootstrap if used on a .btn) */
-.start_btn { /* This class seems unused in the HTML provided for welcome screen */
-    display: inline-block;
-    margin: 0 auto;
-    width: 8em;
-    height: 1.7em;
-    line-height: 1.7em;
-    font-size: 2.2em;
-    color: #fff;
+/* .start_btn はHTMLでBootstrapの .btn を使っているので、ここでは不要か、特定の上書きのみ */
+/*
+.start_btn {
+  display: inline-block;
+  margin: 0 auto;
+  width: 8em;
+  height: 1.7em;
+  line-height: 1.7em;
+  font-size: 2.2em;
+  color: #fff;
+}
+*/
+
+.SHADE { /* index.jsで position: absolute/fixed が設定される想定 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  bottom: 0;
+  z-index: 11; /* ゲームレイヤーより手前に来るように */
 }
 
-/* --- Layout Helper Classes (Original with Flexbox adjustments) --- */
-.SHADE { /* Full-screen overlay base */
-    position: absolute; /* or fixed, depending on context in index.js */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* Use height instead of bottom:0 for full height */
-    z-index: 11;
-    overflow: hidden; /* Added to prevent content spill */
+/* 古いFlexboxの .BOX-* 系はBootstrapと競合するため削除またはコメントアウト */
+/* .BOX-V, .BOX-D, .BOX-M, .BOX-S, .BOX, .FOOTER (古いFlexbox関連) は削除 */
+
+.BBOX { /* box-sizing はBootstrapでも設定されているので、重複を避けるか確認 */
+  box-sizing: border-box;
 }
 
-/* Flexbox Container Styles (Modernized) */
-.BOX,
-.BOX-V,
-.BOX-D,
-.BOX-M,
-.FOOTER {
-    display: flex;
-}
-
-.BOX-V { /* Vertical Flex */
-    flex-direction: column;
-}
-
-.BOX-D { /* Align items to end, pack to center (Original was box-align, box-pack) */
-    align-items: flex-end;
-    justify-content: center;
-}
-
-.BOX-M { /* Align and pack to center */
-    align-items: center;
-    justify-content: center;
-}
-
-.BOX-S { /* Flex item to grow */
-    flex-grow: 1;
-}
-
-/* --- Welcome Screen --- */
 #welcome {
-    background-color: rgba(0, 0, 0, 0.85); /* Slightly darker for better text contrast */
-    text-align: center;
-    font-weight: bold;
-    /* SHADE class already handles position and z-index */
+  background-color: rgba(0, 0, 0, .85); /* 少し濃くして文字を見やすく */
+  text-align: center;
+  font-weight: bold;
+  overflow: hidden;
+  display: none; /* 初期は非表示、index.jsで表示 */
+  color: white; /* 基本の文字色 */
 }
 
-.welcome-bg { /* This is for the image behind the welcome text */
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /* background-image: url('../image/your-welcome-background.jpg'); /* Replace with your image */
-    background-color: #333; /* Fallback color or if no image */
-    background-size: cover; /* Cover the area, maintain aspect ratio */
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 0.3; /* Original was 0.4, adjust as needed */
-    z-index: -1; /* Ensure it's behind the text content of #welcome */
+.welcome-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 理想のレイアウトに合わせて背景画像を設定してください */
+  /* 例: background-image: url('./static/image/kano_welcome_bg.png'); */
+  background-color: #333; /* 画像がない場合のフォールバック */
+  background-size: contain; /* または cover, auto など適切に */
+  background-repeat: no-repeat;
+  background-position: center center;
+  opacity: .3; /* 元のCSSの値を尊重 */
+  overflow: hidden;
+  z-index: -1; /* テキストより後ろに */
 }
 
-#btn_group { /* Button group styling in welcome screen */
-    width: 60%; /* Responsive width */
-    max-width: 280px; /* Max width for larger screens */
-    margin-left: auto;
-    margin-right: auto;
-}
-/* Media queries for btn_group can be simplified or adjusted with Bootstrap grid */
-
-#setting {
-    width: 80%;
-    max-width: 500px; /* Max width for settings panel */
-    margin-left: auto;
-    margin-right: auto;
-    color: #fff; /* Text color for settings, assuming dark background */
-}
-#setting .input-group-text {
-    color: #333; /* Ensure text in input group addon is readable */
-}
-
-
-/* --- Game UI Elements --- */
 #GameTimeLayer {
-    position: absolute; /* Will be set by index.js if !isDesktop */
-    top: 1em;
-    left: 0;
-    width: 100%;
-    text-align: center;
-    color: rgb(233, 138, 131);
-    font-size: 3em; /* Adjusted from 4em, can be fine-tuned */
-    text-shadow: 0 0 2px #fff, 0 0 2px #fff; /* Reduced shadow for clarity */
-    z-index: 12; /* Above game layer */
+  /* index.jsで position: absolute/fixed が設定される想定 */
+  top: 1em;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: rgb(233, 138, 131);
+  font-size: 3.5em; /* 少し調整 */
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff; /* 少し調整 */
+  overflow: hidden;
+  z-index: 12; /* ゲームレイヤーより手前 */
 }
 
-#GameLayerBG { /* Background for the game tiles area */
-    position: absolute; /* Will be set by index.js if !isDesktop */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #e8f7fa; /* Light blueish background, instead of plain white */
-    overflow: hidden;
+#GameLayerBG {
+  /* index.jsで position: absolute/fixed が設定される想定 */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: #2c2c2c; /* 理想のレイアウトに近い暗めの背景色 */
+  /* グリッド線は .block の border で表現される */
 }
 
-.GameLayer { /* Container for tile rows */
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%; /* Ensure it takes full width of its parent GameLayerBG */
+.GameLayer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  /* width と height はJSで設定される想定 */
 }
 
-.block { /* Individual game tile */
-    position: absolute;
-    border-top: 1px solid #b8dfe6;
-    background-repeat: no-repeat;
-    background-position: center;
+.block {
+  position: absolute;
+  border-top: 1px solid #4a4a4a; /* グリッド線の色を調整 */
+  background-repeat: no-repeat;
+  background-position: center;
+  box-sizing: border-box; /* サイズ計算に影響するため追加 */
 }
 
-.bl { /* Block with left border */
-    border-left: 1px solid #b8dfe6;
+/* タイル画像のパスを確認・修正 */
+/* staticフォルダ基準なので、CSSファイルからの相対パスは ../image/ となるか、
+   HTMLからのパスを基準に /static/image/ とするか、サーバー設定によります。
+   ここではHTMLからの絶対パスに近い形で指定してみます。
+   Vercelなどではルートからのパスで解決されることが多いです。
+*/
+.t1,
+.t2,
+.t3,
+.t4,
+.t5 {
+  background-size: contain; /* contain でアスペクト比を保ちつつ収める */
+  background-image: url('/static/image/ClickBefore.png'); /* パス修正の試み */
 }
 
-/* Tile Images - Adjusted paths relative to index.css in static folder */
+.tt1,
+.tt2,
+.tt3,
+.tt4,
+.tt5 {
+  background-size: contain; /* contain でアスペクト比を保ちつつ収める */
+  background-image: url('/static/image/ClickAfter.png'); /* パス修正の試み */
+}
+
+.bl { /* 左の境界線 */
+  border-left: 1px solid #4a4a4a; /* グリッド線の色を調整 */
+}
+
+/* flash アニメーションは変更なし */
+@-ms-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+@-webkit-keyframes flash { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+.flash { -webkit-animation: flash .2s 3; animation: flash .2s 3; }
+
+.bad { /* ミスタップ時のスタイル */
+  background-color: rgba(211, 91, 91, 0.8); /* 少し透過させる */
+  -webkit-animation: flash .2s 3;
+  animation: flash .2s 3;
+}
+
+/* タップハイライトとユーザー選択の無効化は変更なし */
+* { /* 全要素に適用するのは強力すぎるので、必要な要素に限定した方が良い場合も */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  -ms-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* -ms-user-select: none; user-select: none; は必要な箇所に */
+}
+
+#GameScoreLayer {
+  /* index.jsで position: absolute/fixed が設定される想定 */
+  padding-top: 2em;
+  font-size: 1.8em; /* 少し調整 */
+  font-weight: bold;
+  color: #fff; /* 背景が暗いことを想定して白文字に */
+  text-align: center;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.75); /* 背景を追加 */
+  display: none; /* 初期は非表示 */
+}
+
+/* .share-icon はHTMLに見当たらないためコメントアウト */
+/*
+.share-icon {
+  width: 1.7em;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+}
+*/
+
+/* #GameScoreLayer-btn, #GameScoreLayer-share はHTMLに見当たらないためコメントアウト */
+/*
+#GameScoreLayer-btn .btn,
+#GameScoreLayer-share .btn {
+  text-align: center;
+  font-size: 1.1em;
+  color: rgba(0, 0, 0, 0.3);
+  height: 2em;
+  line-height: 2em;
+}
+*/
+
+/* .btn:active はBootstrap側で処理されることが多いので、必要なら調整 */
+/*
+.btn:active {
+  opacity: 0.2;
+}
+*/
+
+/* #landscape はHTMLに見当たらないためコメントアウト */
+/*
+#landscape {
+  display: none;
+}
+*/
+
+#gameBody { /* isDesktop の場合にJSで挿入される想定 */
+  position: relative;
+  width: 100%; /* レスポンシブにするため、固定幅を削除または調整 */
+  max-width: 640px; /* 最大幅は維持 */
+  margin: 0 auto;
+  overflow: hidden; /* ゲームレイヤーがはみ出さないように */
+}
+
+/* #share-wx はHTMLに見当たらないためコメントアウト */
+/*
+#share-wx {
+  background: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 10000;
+  display: none;
+}
+*/
+
+/* #btn_group と #setting の幅はHTMLでBootstrapの w-100 やコンテナを使っているので、
+   CSSでの固定的な幅指定は削除し、max-width での調整に留めるか、Bootstrapに任せる。
+   元のCSSのメディアクエリはHTMLの構造と合わない可能性が高い。
+*/
+#btn_group, #setting {
+  margin-left: auto;
+  margin-right: auto;
+}
+#btn_group {
+   max-width: 220px; /* 適宜調整 */
+}
+#setting {
+   max-width: 400px; /* 適宜調整 */
+}
+
+
+/* #GameScoreLayer の col-* はBootstrapのグリッドが使われているなら、
+   ここでの max-width 指定は不要か、Bootstrapの挙動を上書きしないように注意。
+   index.html で `col-3`, `col-2` が使われているので、
+   Bootstrapの `col-*` の幅に依存させる。
+*/
+/*
+#GameScoreLayer .col-3, #GameScoreLayer .col-2 {
+  max-width: 144px;
+}
+*/
+
+.dropdown-item {
+  cursor: pointer;
+}
+
+/* FILLクラスがHTMLに存在すれば、そのスタイルを定義 */
+.FILL {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* HTMLで .welcome-bg に FILL クラスが使われているので、
+   .welcome-bg の position: absolute; は FILL でカバーされる。
+   重複する可能性のあるスタイルを整理。 */
+.welcome-bg {
+  /* position: absolute; は .FILL で定義 */
+  /* top: 0; left: 0; right: 0; bottom: 0; も .FILL で定義 */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+  opacity: .3;
+  overflow: hidden;
+  z-index: -1;
+  /* 理想の画像パスに置き換えてください */
+  background-image: url('/static/image/kano_welcome_bg_placeholder.png'); /* 仮のパス */
+}
+
+
+/* ゲーム画面のタイル画像パスの修正 */
+/* CSSファイルが static/index.css だとすると、画像フォルダへのパスは ./image/ になる */
 .t1, .t2, .t3, .t4, .t5 {
-    background-size: auto 100%;
-    background-image: url('../image/ClickBefore.png'); /* Path relative to index.css */
+  background-size: contain;
+  background-image: url('./image/ClickBefore.png');
 }
 
 .tt1, .tt2, .tt3, .tt4, .tt5 {
-    background-size: auto 86%;
-    background-image: url('../image/ClickAfter.png'); /* Path relative to index.css */
-}
-
-/* Animations */
-@keyframes flash {
-    0% { opacity: 1; }
-    50% { opacity: 0.1; } /* Less jarring than opacity 0 */
-    100% { opacity: 1; }
-}
-/* Prefixed versions for older browser compatibility if strictly needed, but generally not for modern ones */
-@-webkit-keyframes flash {
-    0% { opacity: 1; }
-    50% { opacity: 0.1; }
-    100% { opacity: 1; }
-}
-
-.flash {
-    animation: flash 0.2s 3;
-    -webkit-animation: flash 0.2s 3;
-}
-
-.bad { /* When a wrong tile is tapped */
-    background-color: rgba(211, 91, 91, 0.8); /* Slightly transparent red */
-    animation: flash 0.2s 3;
-    -webkit-animation: flash 0.2s 3;
-}
-
-/* --- Score Screen --- */
-#GameScoreLayer {
-    /* SHADE class handles position and z-index */
-    background-color: rgba(0, 0, 0, 0.7); /* Default dark overlay */
-    padding-top: 10vh; /* Use viewport units for responsive padding */
-    font-size: 1.5em;  /* Base font size for score layer, can be adjusted */
-    font-weight: bold;
-    color: #f0f0f0; /* Light text color for dark background */
-    text-align: center;
-}
-/* The .bgc1, .bgc2 etc. classes in index.js will override background-color */
-
-#GameScoreLayer .col-3,
-#GameScoreLayer .col-2 {
-    /* Bootstrap columns are flex items. Max-width might not be needed if using BS grid properly. */
-    /* Original: max-width: 144px; */
-    /* This can be removed if Bootstrap's grid handles sizing adequately */
-}
-
-/* Bootstrap button adjustments (if needed, usually BS defaults are fine) */
-/* #GameScoreLayer-btn .btn, #GameScoreLayer-share .btn {} */
-/* .btn:active { opacity: 0.8; } /* Standard BS active state is usually good */
-
-/* Landscape Mode Message (Original) */
-#landscape {
-    display: none; /* Shown via JS for landscape on mobile */
-    /* Ensure it's styled to be a prominent message if shown */
-    position: fixed;
-    top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.9);
-    color: white;
-    z-index: 9999;
-    display: flex; /* Re-enable display:none from original if JS handles it */
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    font-size: 1.5em;
-    padding: 20px;
-}
-
-
-/* Desktop Game Body Container (Original) */
-#gameBody {
-    position: relative; /* If this is for desktop only, JS adds it */
-    width: 100%; /* Make it responsive first */
-    max-width: 640px; /* Then cap the width for desktop-like view */
-    margin: 0 auto;
-    height: 100vh; /* Ensure it takes full viewport height if it's the main container */
-    overflow: hidden; /* Prevent accidental scrollbars if content overflows slightly */
-}
-
-
-/* Share on WX (Original - WeChat specific) */
-#share-wx {
-    background: rgba(0, 0, 0, 0.8);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* ensure it covers the screen */
-    z-index: 10000;
-    display: none; /* Shown by JS */
-}
-
-/* Ensure dropdown items are clickable */
-.dropdown-item {
-    cursor: pointer;
-}
-
-/* --- Media Queries for responsiveness (Simplified) --- */
-/* It's often better to design mobile-first, then add queries for larger screens */
-
-@media (min-width: 768px) { /* Example: tablets and larger */
-    #GameTimeLayer {
-        font-size: 4em;
-    }
-    #GameScoreLayer {
-        font-size: 2em;
-    }
+  background-size: contain;
+  background-image: url('./image/ClickAfter.png');
 }
