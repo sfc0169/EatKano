@@ -356,7 +356,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // 修正: 明示的なアニメーション実装
+    function gameTapEvent(e) { // Modified for clear red flashing effect
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -391,25 +391,37 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
             
-            // 赤くする
-            tar.classList.add('bad');
+            // 直接背景色を赤に設定して点滅効果を実装
+            tar.style.backgroundColor = 'rgb(211, 91, 91)';
             
-            // 明示的なJS点滅アニメーション
-            let flashCount = 0;
-            const flashInterval = setInterval(() => {
-                tar.style.opacity = tar.style.opacity === '0' ? '1' : '0';
-                flashCount++;
-                if (flashCount >= 6) { // 3回点滅（オン/オフで6回の状態変化）
-                    clearInterval(flashInterval);
-                    tar.style.opacity = '1'; // 最終的に見えるように
-                    
-                    if (mode !== MODE_PRACTICE) {
-                        gameOver(); // アニメーション完了後にゲームオーバー
+            if (mode === MODE_PRACTICE) {
+                // 練習モードでは点滅後に元に戻す
+                let flashCount = 0;
+                const flashInterval = setInterval(() => {
+                    flashCount++;
+                    if (flashCount >= 6) { // 3回点滅
+                        clearInterval(flashInterval);
+                        tar.style.backgroundColor = ''; // 背景色をリセット
+                        tar.style.opacity = '1'; // 不透明度をリセット
                     } else {
-                        tar.classList.remove('bad'); // 練習モードでは赤色を除去
+                        // 点滅効果（不透明度を切り替え）
+                        tar.style.opacity = flashCount % 2 === 0 ? '1' : '0.3';
                     }
-                }
-            }, 100); // 0.1秒ごとに切り替え→合計0.6秒で3回点滅
+                }, 150); // 150ミリ秒ごとに切り替え
+            } else {
+                // 通常/エンドレスモードでは点滅後にゲームオーバー
+                let flashCount = 0;
+                const flashInterval = setInterval(() => {
+                    flashCount++;
+                    if (flashCount >= 6) { // 3回点滅
+                        clearInterval(flashInterval);
+                        gameOver(); // 点滅後にゲームオーバー
+                    } else {
+                        // 点滅効果（不透明度を切り替え）
+                        tar.style.opacity = flashCount % 2 === 0 ? '1' : '0.3';
+                    }
+                }, 150); // 150ミリ秒ごとに切り替え
+            }
         }
         return false;
     }
