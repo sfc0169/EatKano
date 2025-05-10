@@ -25,6 +25,13 @@
     <!-- Supabase JS SDK (重要！) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- Vercel Analytics (推奨される新しい方法) -->
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <!-- End Vercel Analytics -->
+
 </head>
 
 <body onLoad="init()" oncontextmenu="event.returnValue=false;">
@@ -137,13 +144,6 @@
     </div>
 
     <script src="./static/index.js"></script>
-
-    <!-- Vercel Analytics -->
-    <script type="module">
-        import { inject } from '@vercel/analytics';
-        inject();
-    </script>
-    <!-- End Vercel Analytics -->
-
+    <!-- Vercel Analytics (推奨スニペット) は <head> 内に移動 -->
 </body>
 </html>
