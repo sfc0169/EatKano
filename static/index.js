@@ -254,16 +254,10 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         gameRestart();
     }
 
-    function gameRestart() { // Modified to clear bad tiles
+    function gameRestart() { // Original, with checks
         _gameBBList = []; _gameBBListIndex = 0; _gameScore = 0; _gameOver = false; _gameStart = false;
         _gameSettingNum = parseInt(cookie('gameTime')) || 20;
         _gameTimeNum = _gameSettingNum; _gameStartTime = 0; _date1 = null; deviationTime = 0;
-        
-        // ゲーム再開時にすべてのタイルから.badクラスを削除
-        document.querySelectorAll('.bad').forEach(el => {
-            el.classList.remove('bad');
-        });
-        
         if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) { return; }
         countBlockSize();
         if (blockSize > 0) {
@@ -362,7 +356,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Modified for faster animation
+    function gameTapEvent(e) { // Original logic (当たり判定) with modification for bad tile animation
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -401,8 +395,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
                 // アニメーションが完了するのを待ってからゲームオーバー
-                // 点滅感覚を早くするために500msから400msに変更
-                setTimeout(() => { gameOver(); }, 400); 
+                setTimeout(() => { gameOver(); }, 800); // 0.8秒後にゲームオーバー処理を実行
             }
         }
         return false;
