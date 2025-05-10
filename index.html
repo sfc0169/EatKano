@@ -18,8 +18,6 @@
 
     <!-- JavaScript Libraries -->
     <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
-    <!-- jsencrypt.min.js はPHPバックエンドでの暗号化用だったので、Supabase移行後は不要 -->
-    <!-- <script src="https://passport.cnblogs.com/scripts/jsencrypt.min.js"></script> -->
     <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
     <script
         src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
@@ -29,7 +27,7 @@
 
 </head>
 
-<body onLoad="init()" oncontextmenu="event.returnValue=false;"> <!-- self. は通常不要 -->
+<body onLoad="init()" oncontextmenu="event.returnValue=false;">
 
     <!-- Game Score Layer -->
     <div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
@@ -138,5 +136,13 @@
         </div>
     </div>
     <script src="./static/index.js"></script>
+
+    <!-- Vercel Speed Insights Script -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <!-- End Vercel Speed Insights Script -->
+
 </body>
 </html>
