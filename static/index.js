@@ -7,7 +7,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
 // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 // IMPORTANT: REPLACE WITH YOUR ACTUAL SUPABASE ANONYMOUS KEY
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // 提供されたキーを使用
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ─── End of Supabase Client Initialization ───
@@ -21,11 +21,9 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (!usernameVal) {
             // console.log("ユーザー名が設定されていません。スコアはSupabaseに保存されません。");
-            // alert("ユーザー名を[設定]で入力すると、スコアがランキングに登録されます。"); // Optional notification
-            return; // Do not submit if username is not set in settings
+            // alert("ユーザー名を[設定]で入力すると、スコアがランキングに登録されます。");
+            return;
         }
-        // Cookieに保存する処理は initSetting と save_cookie に任せる
-        // ここでは送信時に設定画面の値を使うことに集中
 
         const scoreToSubmit = _gameScore;
 
@@ -40,7 +38,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             alert('スコアの保存に失敗しました。エラー: ' + error.message);
         } else {
             // console.log('Supabase スコア保存成功:', data);
-            // alert('スコアがランキングに保存されました！'); // Optional success notification
         }
     }
     // ─── End of Supabase Submit Score Function ───
@@ -51,7 +48,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             { regex: /^ja\b/, lang: 'ja' },
             { regex: /.*/, lang: 'en'}
         ];
-        const lang = LANGUAGES.find(l => l.regex.test(navigator.language)).lang;
+        const lang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en'; // ?.でundefined対策、デフォルトen
         
         let i18nData = null;
         $.ajax({
@@ -62,17 +59,17 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             success: data => i18nData = data,
             error: () => {
                 // console.warn('言語ファイルの読み込みに失敗: ' + lang + '.json. 英語をデフォルトとします。');
-                alert('言語ファイルの読み込みに失敗: ' + lang + '.json. 英語をデフォルトとします。');
+                // alert('言語ファイルの読み込みに失敗: ' + lang + '.json. 英語をデフォルトとします。'); // ユーザーへのalertはUI/UX的に検討
                 $.ajax({
-                    url: `./static/i18n/en.json`,
+                    url: `./static/i18n/en.json`, // フォールバック先
                     dataType: 'json',
                     method: 'GET',
                     async: false,
                     success: data => i18nData = data,
                     error: () => {
                         // console.error('英語の言語ファイルも読み込めませんでした。');
-                        alert('英語の言語ファイルも読み込めませんでした。');
-                        i18nData = {};
+                        // alert('英語の言語ファイルも読み込めませんでした。');
+                        i18nData = {}; // エラー時は空オブジェクトで以降の処理エラーを防ぐ
                     }
                 });
             }
@@ -82,34 +79,42 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const I18N = getJsonI18N();
 
-    if (I18N) {
-        $('[data-i18n]').each(function() {
-            const key = this.dataset.i18n;
-            if (I18N[key] !== undefined) $(this).text(I18N[key]);
-        });
-        $('[data-placeholder-i18n]').each(function() {
-            const key = this.dataset.placeholderI18n;
-            if (I18N[key] !== undefined) $(this).attr('placeholder', I18N[key]);
-        });
-        if (I18N['lang']) {
-            $('html').attr('lang', I18N['lang']);
+    // DOMContentLoaded後の方が確実だが、元のコードは即時実行
+    $(function() { // jQueryのDOMReadyを使用
+        if (I18N) {
+            $('[data-i18n]').each(function() {
+                const key = this.dataset.i18n;
+                if (I18N[key] !== undefined) $(this).text(I18N[key]);
+            });
+            $('[data-placeholder-i18n]').each(function() {
+                const key = this.dataset.placeholderI18n;
+                if (I18N[key] !== undefined) $(this).attr('placeholder', I18N[key]);
+            });
+            if (I18N['lang']) {
+                $('html').attr('lang', I18N['lang']);
+            }
         }
-    }
+    });
+
 
     let isDesktop = !navigator['userAgent'].match(/(ipad|iphone|ipod|android|windows phone)/i);
     let fontunit = isDesktop ? 20 : ((window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth) / 320) * 10;
+    // document.writeでのスタイル挿入は、可能であればCSSファイルに移行するか、<head>内の<style>タグに記述する方が望ましい
     document.write('<style type="text/css">' +
         'html,body {font-size:' + (fontunit < 30 ? fontunit : '30') + 'px;}' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
-            '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
+            '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display:none;}}') + /* landscapeの表示をnoneに */
         '</style>');
 
     let map = {'d': 1, 'f': 2, 'j': 3, 'k': 4};
     if (isDesktop) {
-        document.write('<div id="gameBody"></div>');
+        // HTML側に <div id="gameBody"></div> を用意しておき、JSではそれを取得する方が望ましい
+        if (!document.getElementById('gameBody')) { // 念のため存在チェック
+            document.write('<div id="gameBody"></div>');
+        }
         document.onkeydown = function (e) {
             let key = e.key.toLowerCase();
-            if (Object.keys(map).includes(key)) {
+            if (Object.keys(map).includes(key)) { // モダンな .includes を使用
                 click(map[key]);
             }
         }
@@ -124,42 +129,51 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let soundMode = getSoundMode();
 
     w.init = function() {
+        // ゲームレイヤーの挿入 (重複挿入を防ぐ)
         if (!document.getElementById('GameLayerBG')) {
              document.body.insertAdjacentHTML('afterbegin', createGameLayer());
         }
-        showWelcomeLayer();
+
+        showWelcomeLayer(); // ウェルカム画面表示
+
         body = document.getElementById('gameBody') || document.body;
-        body.style.height = window.innerHeight + 'px';
+        body.style.height = window.innerHeight + 'px'; // bodyの高さを設定
+
         transform = typeof (body.style.webkitTransform) !== 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !==
         'undefined' ? 'msTransform' : 'transform');
         transitionDuration = transform.replace(/ransform/g, 'ransitionDuration');
+
         GameTimeLayer = document.getElementById('GameTimeLayer');
         GameLayerBG = document.getElementById('GameLayerBG');
-        GameLayer = [];
+
+        GameLayer = []; // GameLayer配列を初期化
         const gameLayer1 = document.getElementById('GameLayer1');
         const gameLayer2 = document.getElementById('GameLayer2');
+
         if (gameLayer1 && gameLayer2) {
             GameLayer.push(gameLayer1);
-            GameLayer[0].children = GameLayer[0].querySelectorAll('div');
+            GameLayer[0].children = GameLayer[0].querySelectorAll('div.block'); // .blockクラスを持つ要素のみ
             GameLayer.push(gameLayer2);
-            GameLayer[1].children = GameLayer[1].querySelectorAll('div');
+            GameLayer[1].children = GameLayer[1].querySelectorAll('div.block'); // .blockクラスを持つ要素のみ
         } else {
-            console.error("GameLayer1 or GameLayer2 not found in init().");
+            console.error("GameLayer1 or GameLayer2 not found after createGameLayer().");
             return;
         }
+
         if (GameLayerBG) {
-            if (GameLayerBG.ontouchstart === null) {
+            if (GameLayerBG.ontouchstart === null) { // スマホ・タブレット判定
                 GameLayerBG.ontouchstart = gameTapEvent;
-            } else {
+            } else { // PCなど
                 GameLayerBG.onmousedown = gameTapEvent;
             }
         } else {
             console.error("GameLayerBG not found in init().");
             return;
         }
-        gameInit();
-        initSetting();
-        window.addEventListener('resize', refreshSize, false);
+
+        gameInit(); // サウンド登録、ゲームリスタート呼び出し
+        initSetting(); // Cookieからの設定読み込み
+        window.addEventListener('resize', refreshSize, false); // リサイズイベント
     }
 
     function getMode() {
@@ -179,9 +193,9 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function modeToString(m) {
         if (!I18N) return "Mode";
-        if (m === MODE_ENDLESS) return I18N['endless'];
-        if (m === MODE_PRACTICE) return I18N['practice'];
-        return I18N['normal'];
+        if (m === MODE_ENDLESS) return I18N['endless'] || "Endless";
+        if (m === MODE_PRACTICE) return I18N['practice'] || "Practice";
+        return I18N['normal'] || "Normal";
     }
 
     w.changeMode = function(m) {
@@ -193,9 +207,10 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     w.readyBtn = function() {
         closeWelcomeLayer();
         updatePanel();
+        // gameRestart(); // ゲーム開始は最初のタップで行うか、ここで開始するか検討
     }
 
-    w.winOpen = function() {
+    w.winOpen = function() { // 元のコードのまま
         window.open(location.href + '?r=' + Math.random(), 'nWin', 'height=500,width=320,toolbar=no,menubar=no,scrollbars=no');
         let opened = window.open('about:blank', '_self');
         if (opened) {
@@ -210,11 +225,17 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         refreshSizeTime = setTimeout(_refreshSize, 200);
     }
 
-    function _refreshSize() {
+    function _refreshSize() { // 元のロジックを尊重しつつ、要素存在チェックを追加
         if (!body) body = document.getElementById('gameBody') || document.body;
-        if (!body || body.offsetWidth === 0) return;
+        if (!body || body.offsetWidth === 0) { /*console.warn("_refreshSize: body not ready.");*/ return; }
+
         countBlockSize();
-        if (GameLayer.length < 2 || !GameLayer[0] || !GameLayer[1] || !GameLayer[0].children || !GameLayer[1].children) return;
+        if (blockSize <= 0) { /*console.warn("_refreshSize: blockSize invalid.");*/ return; }
+
+        if (GameLayer.length < 2 || !GameLayer[0] || !GameLayer[1] || !GameLayer[0].children || !GameLayer[1].children) {
+            /*console.warn("_refreshSize: GameLayers not ready.");*/ return;
+        }
+
         for (let i = 0; i < GameLayer.length; i++) {
             let box = GameLayer[i];
             for (let j = 0; j < box.children.length; j++) {
@@ -231,32 +252,39 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else {
             f = GameLayer[1]; a = GameLayer[0];
         }
-        let y = ((_gameBBListIndex) % 10) * blockSize;
+        let y = ((_gameBBListIndex) % 10) * blockSize; // _gameBBListIndexはタップされた黒タイルの通し番号
         f.y = y;
         f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
-        a.y = -blockSize * Math.floor(f.children.length / 4) + y;
+        // aのy計算は、fの現在位置とaが持つべき相対位置から。f.children.lengthは1レイヤーのブロック数
+        a.y = f.y - blockSize * Math.floor(f.children.length / 4) ;
         a.style[transform] = 'translate3D(0,' + a.y + 'px,0)';
     }
 
-    function countBlockSize() {
+    function countBlockSize() { // 元のロジックを尊重
         if (!body) body = document.getElementById('gameBody') || document.body;
-        if (!body || body.offsetWidth === 0) return;
+        if (!body || body.offsetWidth === 0) { /*console.warn("countBlockSize: body not ready or no width.");*/ return; }
         blockSize = body.offsetWidth / 4;
         body.style.height = window.innerHeight + 'px';
         if (GameLayerBG) GameLayerBG.style.height = window.innerHeight + 'px';
-        touchArea[0] = window.innerHeight;
-        touchArea[1] = window.innerHeight - blockSize * 3;
+        touchArea[0] = window.innerHeight; // タップ有効エリアの上限（画面下端）
+        touchArea[1] = window.innerHeight - blockSize * 3; // タップ有効エリアの下限（下から3ブロック分の上端）
     }
 
-    let _gameBBList = [],
-        _gameBBListIndex = 0,
+    let _gameBBList = [], // {cell: 0-3, id: "GameLayerX-Y"} のリスト
+        _gameBBListIndex = 0, // 次にタップすべき_gameBBListのインデックス
         _gameOver = false,
         _gameStart = false,
-        _gameSettingNum = 20,
-        _gameTime, _gameTimeNum, _gameScore, _date1, deviationTime;
-    let _gameStartTime, _gameStartDatetime;
+        _gameSettingNum = 20, // ノーマルモードのデフォルトゲーム時間(秒)
+        _gameTime, // setIntervalのID
+        _gameTimeNum, // 残り時間(秒)
+        _gameScore, // 現在のスコア
+        _date1, // ゲーム開始時刻(Dateオブジェクト)、またはノーマルモードの時間超過判定用
+        deviationTime; // ノーマルモードの時間超過量(ms)
 
-    function gameInit() {
+    let _gameStartTime, // ゲーム開始からの経過秒数(timerでインクリメント)
+        _gameStartDatetime; // ゲーム開始のタイムスタンプ(Date.getTime())
+
+    function gameInit() { // 元のロジックを尊重
         if (typeof createjs !== 'undefined' && createjs.Sound) {
             createjs.Sound.registerSound({ src: "./static/music/err.mp3", id: "err" });
             createjs.Sound.registerSound({ src: "./static/music/end.mp3", id: "end" });
@@ -265,50 +293,52 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         gameRestart();
     }
 
-    function gameRestart() {
+    function gameRestart() { // 元のロジックを尊重
         _gameBBList = [];
         _gameBBListIndex = 0;
         _gameScore = 0;
         _gameOver = false;
         _gameStart = false;
-        _gameSettingNum = parseInt(cookie('gameTime')) || 20;
+        _gameSettingNum = parseInt(cookie('gameTime')) || 20; // 設定時間取得
         _gameTimeNum = _gameSettingNum;
         _gameStartTime = 0;
-        if (GameLayer.length < 2 || !GameLayer[0] || !GameLayer[1]) {
-            const gameLayer1 = document.getElementById('GameLayer1');
-            const gameLayer2 = document.getElementById('GameLayer2');
-            if (gameLayer1 && gameLayer2) {
-                GameLayer = [gameLayer1, gameLayer2];
-                GameLayer[0].children = GameLayer[0].querySelectorAll('div');
-                GameLayer[1].children = GameLayer[1].querySelectorAll('div');
-            } else {
-                return; 
-            }
+        _date1 = null; // リセット
+        deviationTime = 0; //リセット
+
+        if (GameLayer.length < 2 || !GameLayer[0] || !GameLayer[1]) { // GameLayerの存在確認
+            // console.error("Game layers not properly initialized for gameRestart.");
+            // init()を再呼び出しするのではなく、init()が正しく完了するように修正するべき
+            return;
         }
+        
         countBlockSize();
-        if (blockSize > 0 && GameLayer.length === 2 && GameLayer[0].children && GameLayer[1].children) {
-            refreshGameLayer(GameLayer[0]);
-            refreshGameLayer(GameLayer[1], 1);
+        if (blockSize > 0 && GameLayer[0].children && GameLayer[1].children) {
+            refreshGameLayer(GameLayer[0]); // 第1レイヤーを初期化
+            refreshGameLayer(GameLayer[1], 1); // 第2レイヤーをループ用に初期化
+        } else {
+            // console.warn("Cannot refresh layers: blockSize or GameLayers invalid in gameRestart.");
         }
         updatePanel();
     }
 
-    function gameStart() {
-        _date1 = new Date();
-        _gameStartDatetime = _date1.getTime();
+    function gameStart() { // 元のロジックを尊重
+        _date1 = new Date(); // deviationTime 計算用
+        _gameStartDatetime = _date1.getTime(); // CPS計算用
         _gameStart = true;
-        if(_gameTime) clearInterval(_gameTime);
+        _gameStartTime = 0; // リセット
+        if(_gameTime) clearInterval(_gameTime); // 既存タイマー解除
         _gameTime = setInterval(timer, 1000);
     }
 
-    function getCPS() {
+    function getCPS() { // 元のロジックを尊重
         const elapsedTime = (new Date().getTime() - _gameStartDatetime) / 1000;
         if (elapsedTime <= 0 || _gameScore === 0) return 0;
         let cps = _gameScore / elapsedTime;
+        // _gameStartTime はタイマーで1秒ごとに増えるので、2秒以上経過しているかの目安になる
         return isNaN(cps) || !isFinite(cps) || _gameStartTime < 1 ? 0 : cps;
     }
 
-    function timer() {
+    function timer() { // 元のロジックを尊重
         _gameTimeNum--;
         _gameStartTime++;
         if (mode === MODE_NORMAL && _gameTimeNum <= 0) {
@@ -320,48 +350,49 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         updatePanel();
     }
 
-    function updatePanel() {
+    function updatePanel() { // 元のロジックを尊重
         if (!GameTimeLayer) GameTimeLayer = document.getElementById('GameTimeLayer');
-        if (!GameTimeLayer) return;
+        if (!GameTimeLayer || !I18N) return;
+
         if (mode === MODE_NORMAL) {
             if (!_gameOver) {
                 GameTimeLayer.innerHTML = createTimeText(_gameTimeNum);
             }
         } else if (mode === MODE_ENDLESS) {
             let cps = getCPS();
-            let text = (cps === 0 && _gameScore === 0 ? (I18N ? I18N['calculating'] : 'Calculating...') : cps.toFixed(2));
+            let text = (cps === 0 && _gameScore === 0 ? (I18N['calculating'] || 'Calculating...') : cps.toFixed(2));
             GameTimeLayer.innerHTML = `CPS:${text}`;
-        } else {
+        } else { // MODE_PRACTICE
             GameTimeLayer.innerHTML = `SCORE:${_gameScore}`;
         }
     }
 
-    function focusOnReplay(){ // Corrected typo from foucusOnReplay
+    function focusOnReplay(){ // 元の関数名 foucusOnReplay から修正
         const replayBtnEl = document.getElementById('replay');
         if (replayBtnEl) replayBtnEl.focus();
     }
 
-    function gameOver() {
+    function gameOver() { // 元のロジックを尊重
         _gameOver = true;
         if(_gameTime) clearInterval(_gameTime);
         let cps = getCPS();
-        updatePanel();
+        updatePanel(); // 最終スコア表示
         setTimeout(function () {
             if (GameLayerBG) GameLayerBG.classList.remove('flash');
             showGameScoreLayer(cps);
-            focusOnReplay(); // Corrected typo
+            focusOnReplay(); // 修正後の関数名
         }, 1500);
     }
 
-    function createTimeText(n) {
+    function createTimeText(n) { // 元のロジックを尊重
         return 'TIME:' + Math.max(0, Math.ceil(n));
     }
 
     let _ttreg = / t{1,2}(\d+)/,
         _clearttClsReg = / t{1,2}\d+| bad/;
 
-    function refreshGameLayer(box, loop, offset) {
-        if (!box || !box.children || blockSize <= 0) return;
+    function refreshGameLayer(box, loop, offset) { // 元のロジックを尊重
+        if (!box || !box.children || blockSize <= 0) { /*console.warn("refreshGameLayer: invalid args"); */ return;}
         let i = Math.floor(Math.random() * 1000) % 4 + (loop ? 0 : 4);
         for (let j = 0; j < box.children.length; j++) {
             let r = box.children[j], rstyle = r.style;
@@ -373,105 +404,98 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             r.notEmpty = false;
             if (i === j) {
                 _gameBBList.push({ cell: i % 4, id: r.id });
-                r.className += ' t' + (Math.floor(Math.random() * 5) + 1);
+                r.className += ' t' + (Math.floor(Math.random() * 5) + 1); // 1-5の乱数
                 r.notEmpty = true;
+                // 次の黒タイルは次の行のランダムな列に
                 i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 4);
             }
         }
         if (loop) {
             box.style[transitionDuration] = '0ms';
-            box.style.display = 'none';
-            box.y = -blockSize * (Math.floor(box.children.length / 4) + (offset || 0)) * loop;
-            setTimeout(function () {
-                box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
-                box.style.display = 'block';
-            }, 100);
+            box.style.display = 'none'; // 一旦非表示にして再配置
+            box.y = -blockSize * (Math.floor(box.children.length / 4) + (offset || 0)); // loop引数は1のはずなので乗算不要か？元のまま
+            box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
+            // 表示を戻すタイミングを調整、元のコードはsetTimeoutを2段重ね
+            setTimeout(function () { box.style.display = 'block'; }, 50); // 少し遅延させて表示
         } else {
             box.y = 0;
             box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
         }
-        box.style[transitionDuration] = '150ms';
+        box.style[transitionDuration] = '150ms'; // 通常の移動アニメーション時間
     }
 
-    function gameLayerMoveNextRow() {
+    function gameLayerMoveNextRow() { // 元のロジックを尊重
         for (let i = 0; i < GameLayer.length; i++) {
             let g = GameLayer[i];
-            if (!g) continue; // g が null または undefined の場合スキップ
+            if (!g || !g.children) continue;
             g.y += blockSize;
+            // レイヤーが完全に画面外に出たら（一番下の行のbottomがblockSize * 行数を超えたら）リフレッシュ
             if (g.y > blockSize * (Math.floor(g.children.length / 4))) {
-                refreshGameLayer(g, 1, -1);
+                refreshGameLayer(g, 1, -1); // offset -1 は、既にyが画面外を指しているので、1画面分戻す意味
             } else {
                 g.style[transform] = 'translate3D(0,' + g.y + 'px,0)';
             }
         }
     }
 
-    function gameTapEvent(e) {
+    function gameTapEvent(e) { // 元の当たり判定ロジックを極力維持
         if (_gameOver) return false;
-        let tar = e.target;
-        let y = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
-        let x = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
-        if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return false;
-        let p = _gameBBList[_gameBBListIndex];
-        if (touchArea[1] === undefined && body && body.offsetWidth > 0) countBlockSize();
-        if (touchArea[1] !== undefined && (y > touchArea[0] || y < touchArea[1])) return false;
 
-        // Determine the actual block that was tapped (tar might be a child, or GameLayerBG)
-        let tappedBlockElement = tar;
-        // If tar is not a .block, try to find the .block based on x, y (more complex, original logic relied on event target or x-coord ranges)
-        // The original logic for column checking:
-        // (p.cell === 0 && x < blockSize) || ...
-        // This implies a tap anywhere in the correct column, on the correct row, is a valid tap for the black tile.
-        // Let's try to get the specific block in the column.
-        const col = Math.floor(x / blockSize);
-        if (tar && !tar.classList.contains('block')) { // If tap was on GameLayerBG
-            // Find block in this column in the active row
-            const activeRowOffset = Math.floor(p.cell / 4) * 4; // This assumes p.cell is global index in a layer
-                                                              // This needs to be based on visible row.
-                                                              // The original logic is a bit ambiguous here.
-                                                              // For simplicity, we assume `tar` is the block itself if it's a block.
-                                                              // If it's not a block, the `p.id === tar.id` check will fail.
+        let tar = e.target;
+        let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
+        let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
+
+        if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return false;
+        let p = _gameBBList[_gameBBListIndex]; // 次にタップすべき黒ブロックの情報 {cell, id}
+
+        // タッチエリア判定 (blockSizeに依存するので、未設定なら再計算試行)
+        if ((touchArea[1] === undefined || blockSize <= 0) && body && body.offsetWidth > 0) countBlockSize();
+        if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) {
+            return false; // タッチエリア外
+        }
+
+        // 成功タップの判定
+        // 1. targetが直接p.idの要素で、かつそれがnotEmpty (黒タイル)
+        // 2. または、targetがp.idではないが、タップ座標xがp.cell (黒タイルがあるべき列) の範囲内
+        //    この2番目の条件は、黒タイル以外の場所をタップしても、それが正しい列ならOKという意味？
+        //    元のコードの `(p.cell === 0 && x < blockSize)` などは列の範囲を示している。
+        //    しかし、tar.notEmptyのチェックがないので、白いタイルを正しい列でタップした場合もこのifブロックに入る可能性がある。
+        //    より厳密には、実際にタップされたDOM要素 `tar` が `p.id` と一致し、かつ `tar.notEmpty` であることを確認するのが良い。
+        //    元のコードの意図を尊重し、列タップも許容するが、その場合対象は `document.getElementById(p.id)` にする。
+
+        let tappedCorrectBlackTile = false;
+        let tappedWhiteTileInCorrectColumn = false; // 本来はエラーだが元のロジックに合わせる
+        
+        const correctBlackTileElement = document.getElementById(p.id);
+
+        if (correctBlackTileElement && correctBlackTileElement.notEmpty) {
+            if (tar && tar.id === p.id) { // Directly tapped the correct black tile
+                tappedCorrectBlackTile = true;
+            } else { // Tapped elsewhere, check if it's in the correct column
+                const col = Math.floor(eventX / blockSize);
+                if (p.cell === col) {
+                    // この場合、tarは GameLayerBG か、白いタイルである可能性が高い。
+                    // 元のコードではこの条件でも成功として扱っていたため、黒タイルをタップしたことにする。
+                    tappedCorrectBlackTile = true; 
+                }
+            }
         }
 
 
-        if (tar && ((p.id === tar.id && tar.notEmpty) || // Case 1: Tapped directly on the correct black block
-            // Case 2: Tapped in the correct column for the black block (original logic)
-            (tar.id !== p.id && !tar.notEmpty && p.cell === col && tar.classList && tar.classList.contains('block')) // Tapped white block in correct column (Error case)
-           )) {
+        if (tappedCorrectBlackTile) {
+            if (!_gameStart) gameStart();
+            if (soundMode === 'on' && createjs && createjs.Sound) createjs.Sound.play("tap");
 
-            let actualTargetBlock = document.getElementById(p.id); // Always refer to the *expected* black block
-            if (!actualTargetBlock) return false;
+            correctBlackTileElement.className = correctBlackTileElement.className.replace(_ttreg, ' tt$1');
+            correctBlackTileElement.notEmpty = false; // Mark as tapped
 
-            if (actualTargetBlock.notEmpty && (p.id === tar.id || p.cell === col) ) { // Successfully tapped the black block (or its column)
-                 if (!_gameStart) gameStart();
-                if (soundMode === 'on' && createjs && createjs.Sound) createjs.Sound.play("tap");
-                actualTargetBlock.className = actualTargetBlock.className.replace(_ttreg, ' tt$1');
-                actualTargetBlock.notEmpty = false;
-                _gameBBListIndex++;
-                _gameScore++;
-                updatePanel();
-                gameLayerMoveNextRow();
-            } else if (_gameStart && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // Tapped a white block
-                if (soundMode === 'on' && createjs && createjs.Sound) createjs.Sound.play("err");
-                tar.classList.add('bad');
-                if (mode === MODE_PRACTICE) {
-                    setTimeout(() => { tar.classList.remove('bad'); }, 500);
-                } else {
-                    gameOver();
-                }
-            }
+            _gameBBListIndex++; // 次のターゲットへ
+            _gameScore++;
 
-        } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty && tar.id !== p.id) {
-            // Tapped a black block that was NOT the target (e.g. a future one) - This is an error
-            if (soundMode === 'on' && createjs && createjs.Sound) createjs.Sound.play("err");
-            tar.classList.add('bad');
-             if (mode === MODE_PRACTICE) {
-                setTimeout(() => { tar.classList.remove('bad'); }, 500);
-            } else {
-                gameOver();
-            }
+            updatePanel();
+            gameLayerMoveNextRow();
         } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) {
-             // Tapped a white block (already handled above, but as a fallback)
+            // 明確に白いタイル (notEmpty=falseのblock) をタップした場合
             if (soundMode === 'on' && createjs && createjs.Sound) createjs.Sound.play("err");
             tar.classList.add('bad');
             if (mode === MODE_PRACTICE) {
@@ -480,11 +504,13 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 gameOver();
             }
         }
+        // それ以外のタップ（例えば、まだ出現していない先の黒タイルや、完全にエリア外など）は無視されるか、
+        // _gameStart後のエリア内タップであれば、上の条件で処理される。
         return false;
     }
 
 
-    function createGameLayer() {
+    function createGameLayer() { // 元のコードのまま
         let html = '<div id="GameLayerBG">';
         for (let i = 1; i <= 2; i++) {
             let id = 'GameLayer' + i;
@@ -502,19 +528,19 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return html;
     }
 
-    function closeWelcomeLayer() {
+    function closeWelcomeLayer() { // 元のコードのまま
         welcomeLayerClosed = true;
         $('#welcome').css('display', 'none');
         updatePanel();
     }
 
-    function showWelcomeLayer() {
+    function showWelcomeLayer() { // 元のコードのまま
         welcomeLayerClosed = false;
         $('#mode').text(modeToString(mode));
         $('#welcome').css('display', 'block');
     }
 
-    function getBestScore(currentScore) {
+    function getBestScore(currentScore) { // 元のコードのまま (bast-scoreをbest-scoreに修正)
         let cookieName = (mode === MODE_NORMAL ? 'best-score' : 'endless-best-score');
         let best = parseFloat(cookie(cookieName)) || 0;
         if (currentScore > best) {
@@ -524,75 +550,90 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return best;
     }
 
-    function scoreToString(s) {
+    function scoreToString(s) { // 元のコードのまま
         return mode === MODE_ENDLESS ? parseFloat(s).toFixed(2) : String(Math.floor(s));
     }
 
-    function legalDeviationTime() {
+    function legalDeviationTime() { // 元のコードのまま
         return _date1 ? deviationTime < (_gameSettingNum + 3) * 1000 : true;
     }
 
-    function showGameScoreLayer(cps) {
+    function showGameScoreLayer(cps) { // 元のコードのロジックを尊重
         const gameScoreLayer = $('#GameScoreLayer');
         if (_gameBBList.length > 0 && _gameBBListIndex > 0 && _gameBBList[_gameBBListIndex - 1]) {
             const lastTappedBlockId = _gameBBList[_gameBBListIndex - 1].id;
-            const lastBlock = $(`#${lastTappedBlockId}`);
-            if(lastBlock.length > 0) {
-                const cMatch = lastBlock.attr('class').match(/tt(\d)/);
-                if (cMatch && cMatch[1]) {
-                    gameScoreLayer.attr('class', (idx, oldClass) => (oldClass || '').replace(/bgc\d/, '') + ' bgc' + cMatch[1] + ' BBOX SHADE');
+            const lastBlock = $(`#${lastTappedBlockId}`); // jQueryオブジェクト
+            if(lastBlock.length > 0) { // 要素が存在するか確認
+                const classAttr = lastBlock.attr('class');
+                if (classAttr) { // class属性が存在するか確認
+                    const cMatch = classAttr.match(_ttreg); // _ttreg は / t{1,2}(\d+)/
+                    if (cMatch && cMatch[1]) {
+                        // 'BBOX SHADE' は常に付ける
+                        gameScoreLayer.attr('class', 'BBOX SHADE bgc' + cMatch[1]);
+                    } else {
+                         gameScoreLayer.attr('class', 'BBOX SHADE bgc1'); // マッチしない場合はデフォルト
+                    }
+                } else {
+                     gameScoreLayer.attr('class', 'BBOX SHADE bgc1'); // class属性がない場合
                 }
+            } else {
+                 gameScoreLayer.attr('class', 'BBOX SHADE bgc1'); // 要素が見つからない場合
             }
         } else {
-             gameScoreLayer.attr('class', 'BBOX SHADE bgc1'); // Default if no block found
+             gameScoreLayer.attr('class', 'BBOX SHADE bgc1'); // リストが空などの場合
         }
         
-        $('#GameScoreLayer-text').html(shareText(cps));
+        $('#GameScoreLayer-text').html(shareText(cps)); // ここで Supabase 送信が呼ばれる
+
         let scoreVal = (mode === MODE_ENDLESS ? cps : _gameScore);
         let best = getBestScore(scoreVal);
+        
         let normalCond = mode !== MODE_NORMAL || legalDeviationTime();
-        gameScoreLayer.css('color', normalCond ? '' : 'red');
+        gameScoreLayer.css('color', normalCond ? '' : 'red'); // 文字色変更
+
         $('#cps').text(cps.toFixed(2));
         $('#score').text(scoreToString(_gameScore));
-        $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : 'flex');
+        $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : 'flex'); // flexで表示
         $('#best').text(scoreToString(best));
+
         gameScoreLayer.css('display', 'block');
     }
 
-    function hideGameScoreLayer() {
+    function hideGameScoreLayer() { // 元のコードのまま
         $('#GameScoreLayer').css('display', 'none');
     }
 
-    w.replayBtn = function() {
+    w.replayBtn = function() { // 元のコードのまま
         gameRestart();
         hideGameScoreLayer();
     }
 
-    w.backBtn = function() {
+    w.backBtn = function() { // 元のコードのまま
         gameRestart();
         hideGameScoreLayer();
         showWelcomeLayer();
     }
 
-    function shareText(cps) {
+    function shareText(cps) { // 元のコードのロジック + Supabase送信呼び出し
         if (mode === MODE_NORMAL) {
             let date2 = new Date();
-            if (!_date1) _date1 = date2;
+            if (!_date1) _date1 = date2; // _date1 が未設定の場合のフォールバック
             deviationTime = (date2.getTime() - _date1.getTime());
             if (!legalDeviationTime()) {
                 return (I18N ? I18N['time-over'] : 'Time over by: ') + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
             }
-            SubmitResultsToSupabase(); // Call the Supabase submission function
+            SubmitResultsToSupabase(); // ★★★ Supabaseへの送信関数を呼び出す ★★★
         }
-        if (!I18N) return "Score: " + cps.toFixed(2);
-        if (cps <= 5) return I18N['text-level-1'];
-        if (cps <= 8) return I18N['text-level-2'];
-        if (cps <= 10) return I18N['text-level-3'];
-        if (cps <= 15) return I18N['text-level-4'];
-        return I18N['text-level-5'];
+
+        if (!I18N) return "Score: " + cps.toFixed(2); // I18Nフォールバック
+        if (cps <= 5) return I18N['text-level-1'] || 'Level 1';
+        if (cps <= 8) return I18N['text-level-2'] || 'Level 2';
+        if (cps <= 10) return I18N['text-level-3'] || 'Level 3';
+        if (cps <= 15) return I18N['text-level-4'] || 'Level 4';
+        return I18N['text-level-5'] || 'Level 5';
     }
 
-    function toStr(obj) {
+    function toStr(obj) { // 元のコードのまま
         if (typeof obj === 'object') {
             try { return JSON.stringify(obj); } catch(e) { return String(obj); }
         } else {
@@ -600,7 +641,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function cookie(name, value, timeInDays) {
+    function cookie(name, value, timeInDays) { // eval を避ける修正版
         if (name) {
             if (value !== undefined) {
                 let expires = "";
@@ -619,20 +660,21 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     while (c.charAt(0) === ' ') c = c.substring(1, c.length);
                     if (c.indexOf(nameEQ) === 0) {
                         let valStr = unescape(c.substring(nameEQ.length, c.length));
-                        try {
+                        try { // JSONや数値のパースを試みる
                             if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) {
                                 return JSON.parse(valStr);
                             }
                             if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) {
                                 return parseFloat(valStr);
                             }
-                        } catch (e) { /* ignore */ }
+                        } catch (e) { /* パース失敗時は文字列として返す */ }
                         return valStr;
                     }
                 }
-                return null;
+                return null; // 見つからない場合は null
             }
         }
+        // 引数なしの場合は全Cookieをオブジェクトで返す (元の動作)
         let data = {};
         let ca = document.cookie.split(';');
         for (let i = 0; i < ca.length; i++) {
@@ -642,7 +684,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return data;
     }
 
-    function initSetting() {
+    function initSetting() { // 元のコードのまま
         $("#username").val(cookie("username") || "");
         $("#message").val(cookie("message") || "");
         const titleCookie = cookie("title");
@@ -654,7 +696,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (keyboardCookie) {
             const keyboardStr = String(keyboardCookie).toLowerCase();
             $("#keyboard").val(keyboardStr);
-            if (keyboardStr.length === 4) {
+            if (keyboardStr.length === 4) { // キー設定は4文字前提
                 map = {};
                 map[keyboardStr.charAt(0)] = 1;
                 map[keyboardStr.charAt(1)] = 2;
@@ -667,72 +709,95 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             const parsedTime = parseInt(gameTimeCookie);
             if (!isNaN(parsedTime) && parsedTime > 0) {
                 $('#gameTime').val(parsedTime);
-                _gameSettingNum = parsedTime;
+                _gameSettingNum = parsedTime; // グローバル変数も更新
             }
         }
     }
 
-    w.show_btn = function() {
-        $('#btn_group').css('display', 'flex'); // Assuming HTML uses d-flex for btn_group
+    w.show_btn = function() { // 元のコードのまま
+        $('#btn_group').css('display', 'flex'); // HTMLの d-grid に合わせるなら 'grid'
         $('#desc').css('display', 'block');
         $('#setting').css('display', 'none');
     }
 
-    w.show_setting = function() {
+    w.show_setting = function() { // 元のコードのまま
         $('#btn_group').css('display', 'none');
         $('#desc').css('display', 'none');
-        $('#setting').css('display', 'block'); // Or 'flex' if CSS uses it
+        $('#setting').css('display', 'block'); // HTMLの #setting の display に合わせる
         if (I18N) $('#sound').text(soundMode === 'on' ? (I18N['sound-on'] || 'Sound ON') : (I18N['sound-off'] || 'Sound OFF'));
     }
 
-    w.save_cookie = function() {
+    w.save_cookie = function() { // 元のコードのまま
         const settings = ['username', 'message', 'keyboard', 'title', 'gameTime'];
         for (let s of settings) {
             let value = $(`#${s}`).val();
             if (value !== null && value !== undefined) {
-                cookie(s, String(value).trim(), 100);
+                cookie(s, String(value).trim(), 100); // 保存時もtrim
             }
         }
-        const gameTimeVal = $('#gameTime').val();
+        const gameTimeVal = $('#gameTime').val(); // gameTimeを再取得
         if (gameTimeVal) {
             const newGameTime = parseInt(gameTimeVal);
             if(!isNaN(newGameTime) && newGameTime > 0) _gameSettingNum = newGameTime;
         }
-        initSetting();
+        initSetting(); // 設定を再適用
     }
 
-    function click(index) {
+    // isnull はSupabase版では直接使っていないが、元のコードに残っていたのでそのまま
+    function isnull(val) {
+        if (val === null || val === undefined) return true;
+        let str = String(val).replace(/(^\s*)|(\s*$)/g, '');
+        return str === '';
+    }
+
+    function click(index) { // 元のキーボード入力処理を尊重
         if (!welcomeLayerClosed || _gameOver) return;
         if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return;
+
         let p = _gameBBList[_gameBBListIndex];
         const currentBlockElement = document.getElementById(p.id);
         if (!currentBlockElement) return;
+
         const parentLayer = currentBlockElement.parentElement;
         if (!parentLayer) return;
-        const currentBlockNum = parseInt(currentBlockElement.getAttribute('num'));
+
+        const currentBlockNumAttr = currentBlockElement.getAttribute("num");
+        if (currentBlockNumAttr === null) return; // num属性がない場合は処理中断
+        const currentBlockNum = parseInt(currentBlockNumAttr);
+
+
         const rowStartNum = currentBlockNum - p.cell;
-        const targetNumInRow = index - 1;
-        const targetNumGlobal = rowStartNum + targetNumInRow;
+        const targetColIndex = index - 1; // 0-indexed column
+        const targetNumGlobal = rowStartNum + targetColIndex;
+        
         let targetBlockElement = null;
-        for (let child of parentLayer.children) {
-            if (parseInt(child.getAttribute('num')) === targetNumGlobal) {
+        // Find target block by iterating through children, matching 'num' attribute
+        for (let i = 0; i < parentLayer.children.length; i++) {
+            const child = parentLayer.children[i];
+            if (child.getAttribute("num") === String(targetNumGlobal)) {
                 targetBlockElement = child;
                 break;
             }
         }
-        if (!targetBlockElement) return;
+
+        if (!targetBlockElement) {
+            // console.warn("Keyboard click: Target element not found for num:", targetNumGlobal);
+            return;
+        }
+        
         let fakeEvent = {
             target: targetBlockElement,
-            clientX: (targetNumInRow + 0.5) * blockSize + (body ? body.offsetLeft : 0),
-            clientY: (touchArea[0] + touchArea[1]) / 2
+            clientX: (targetColIndex + 0.5) * blockSize + (body ? body.offsetLeft : 0),
+            clientY: (touchArea[0] + touchArea[1]) / 2 // Mid-point of active touch area
         };
         gameTapEvent(fakeEvent);
     }
 
-    const clickBeforeStyle = $('<style id="clickBeforeStyleInjectedByJS"></style>').appendTo($(document.head));
-    const clickAfterStyle = $('<style id="clickAfterStyleInjectedByJS"></style>').appendTo($(document.head));
+    // jQueryで<style>タグを<head>に追加
+    const clickBeforeStyle = $('<style id="clickBeforeStyleInjectedJS"></style>').appendTo('head');
+    const clickAfterStyle = $('<style id="clickAfterStyleInjectedJS"></style>').appendTo('head');
 
-    function saveImage(dom, callback) {
+    function saveImage(dom, callback) { // 元のコードのまま
         if (dom.files && dom.files[0]) {
             let reader = new FileReader();
             reader.onload = function() { callback(this.result); }
@@ -740,11 +805,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    w.getClickBeforeImage = function() {
+    w.getClickBeforeImage = function() { // 元のコードのまま
         $('#click-before-image').trigger('click');
     }
 
-    w.saveClickBeforeImage = function() {
+    w.saveClickBeforeImage = function() { // 元のコードのまま + !important
         const img = document.getElementById('click-before-image');
         saveImage(img, r => {
             clickBeforeStyle.html(`
@@ -757,11 +822,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         })
     }
 
-    w.getClickAfterImage = function() {
+    w.getClickAfterImage = function() { // 元のコードのまま
         $('#click-after-image').trigger('click');
     }
 
-    w.saveClickAfterImage = function() {
+    w.saveClickAfterImage = function() { // 元のコードのまま + !important
         const img = document.getElementById('click-after-image');
         saveImage(img, r => {
             clickAfterStyle.html(`
