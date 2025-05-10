@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<!-- lang属性はindex.jsで設定されるため、ここでは削除またはコメントアウトしても良い -->
+<html>
 <head>
   <meta charset="utf-8" />
-  <title data-i18n="eat-kano"></title>
+  <title data-i18n="eat-kano">EatKano</title> <!-- 初期タイトル（JSで上書きされる） -->
 
   <!-- Meta -->
   <meta name="viewport"
@@ -10,15 +11,25 @@
                  maximum-scale=1.0, width=device-width,target-densitydpi=device-dpi" />
 
   <!-- OGP / 検索情報 -->
+  <!-- よりリッチな共有のため、og:xxx や twitter:xxx タグの追加を推奨 -->
   <meta itemprop="name"        content="Eat Kano" />
   <meta itemprop="description" content="新概念音ゲー" />
+  <!-- 例: <meta property="og:title" content="Eat Kano" /> -->
+  <!-- 例: <meta property="og:description" content="新概念音ゲー" /> -->
+  <!-- 例: <meta property="og:type" content="website" /> -->
+  <!-- 例: <meta property="og:url" content="[あなたのゲームのURL]" /> -->
+  <!-- 例: <meta property="og:image" content="[ゲームのサムネイル画像のURL]" /> -->
 
   <!-- CSS & ライブラリ -->
   <link  href="./static/index.css" rel="stylesheet" />
+  <!-- Bootstrap CSS (CDN) -->
   <link  href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/css/bootstrap.min.css"
          rel="stylesheet" />
+  <!-- jQuery (CDN) -->
   <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
+  <!-- Bootstrap JS (CDN) -->
   <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+  <!-- CreateJS (CDN) -->
   <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
 
   <!-- Supabase JS SDK -->
@@ -28,26 +39,31 @@
   <script src="./static/index.js"></script>
 </head>
 
-<body onload="init()" oncontextmenu="return false">
+<body onload="init()" oncontextmenu="return false"> <!-- init() は index.js で定義 -->
   <!-- スコア画面 -->
   <div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
     <div class="p-4" style="margin-top:200px;background:rgba(125,181,216,.3);">
+      <!-- スコア表示テキストエリア (例: "素晴らしい！" など) -->
       <div id="GameScoreLayer-text"></div>
 
+      <!-- CPS表示 -->
       <div class="mb-2 d-flex justify-content-center">
         <span class="col-3">CPS</span><span id="cps" class="col-2"></span>
       </div>
+      <!-- スコア表示 (ノーマルモード用) -->
       <div id="GameScoreLayer-score" class="mb-2 d-flex justify-content-center">
-        <span class="col-3" data-i18n="score"></span><span id="score" class="col-2"></span>
+        <span class="col-3" data-i18n="score">スコア</span><span id="score" class="col-2"></span>
       </div>
+      <!-- ベストスコア表示 -->
       <div id="GameScoreLayer-bast" class="mb-2 d-flex justify-content-center">
-        <span class="col-3" data-i18n="best"></span><span id="best" class="col-2"></span>
+        <span class="col-3" data-i18n="best">ベスト</span><span id="best" class="col-2"></span>
       </div>
 
-      <button id="replay" class="btn btn-secondary btn-lg" onclick="replayBtn()" data-i18n="again"></button>
-      <button          class="btn btn-secondary btn-lg" onclick="location.reload()" data-i18n="home"></button>
-      <button          class="btn btn-secondary btn-lg" onclick="location.href='https://github.com/arcxingye/EatKano'"
-                       data-i18n="repo"></button>
+      <!-- ボタン類 -->
+      <button id="replay" class="btn btn-secondary btn-lg" onclick="replayBtn()" data-i18n="again">もう一度</button>
+      <button          class="btn btn-secondary btn-lg" onclick="location.reload()" data-i18n="home">ホーム</button>
+      <button          class="btn btn-secondary btn-lg" onclick="window.open('https://github.com/arcxingye/EatKano', '_blank')"
+                       data-i18n="repo">リポジトリ</button> <!-- target="_blank" を推奨 -->
     </div>
   </div>
 
@@ -59,10 +75,10 @@
 
         <!-- タイトル & 説明 -->
         <div class="container mb-5">
-          <div class="text-warning" style="font-size:2.6em;" data-i18n="game-title"></div><br>
+          <div class="text-warning" style="font-size:2.6em;" data-i18n="game-title">EAT KANO</div><br>
           <div id="desc" class="text-white" style="font-size:2.2em;line-height:1.5em;">
-            <span data-i18n="game-intro1"></span><br>
-            <span data-i18n="game-intro2"></span><br>
+            <span data-i18n="game-intro1">カノを食べる</span><br>
+            <span data-i18n="game-intro2">新概念の音楽ゲーム！</span><br>
           </div>
         </div>
 
@@ -70,22 +86,22 @@
         <div id="btn_group" class="container text-nowrap">
           <div class="d-flex flex-column align-items-center">
 
-            <a class="btn btn-primary btn-lg mb-3" onclick="readyBtn()" data-i18n="start"></a>
+            <a class="btn btn-primary btn-lg mb-3 w-100" onclick="readyBtn()" data-i18n="start">スタート</a>
 
             <div class="dropdown mb-3 w-100">
-              <a id="mode" class="btn btn-secondary btn-lg w-100" href="javascript:void(0);"
-                 data-bs-toggle="dropdown" data-i18n="normal"></a>
-              <ul class="dropdown-menu" aria-labelledby="mode">
-                <li><a class="dropdown-item" onclick="changeMode(MODE_NORMAL)"  data-i18n="normal"></a></li>
-                <li><a class="dropdown-item" onclick="changeMode(MODE_ENDLESS)" data-i18n="endless"></a></li>
-                <li><a class="dropdown-item" onclick="changeMode(MODE_PRACTICE)" data-i18n="practice"></a></li>
+              <a id="mode" class="btn btn-secondary btn-lg w-100 dropdown-toggle" href="javascript:void(0);"
+                 role="button" data-bs-toggle="dropdown" aria-expanded="false" data-i18n="normal">ノーマル</a>
+              <ul class="dropdown-menu w-100" aria-labelledby="mode">
+                <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_NORMAL)"  data-i18n="normal">ノーマル</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_ENDLESS)" data-i18n="endless">エンドレス</a></li>
+                <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_PRACTICE)" data-i18n="practice">練習</a></li>
               </ul>
             </div>
 
-            <!-- ⇩ ランキングページへのリンク -->
-            <a href="/leaderboard.html" class="btn btn-success btn-lg mb-3" data-i18n="rank">RANK</a>
+            <!-- ランキングページへのリンク -->
+            <a href="./leaderboard.html" class="btn btn-success btn-lg mb-3 w-100" data-i18n="rank">ランキング</a>
 
-            <a class="btn btn-secondary btn-lg" onclick="show_setting()" data-i18n="settings"></a>
+            <a class="btn btn-info btn-lg w-100" onclick="show_setting()" data-i18n="settings">設定</a>
           </div>
         </div>
 
@@ -93,35 +109,35 @@
         <div id="setting" class="container" style="display:none;">
           <!-- 名前 -->
           <div class="input-group mb-3">
-            <span class="input-group-text col-3" data-i18n="name"></span>
-            <input id="username" type="text" class="form-control" placeholder="name">
+            <span class="input-group-text col-3" data-i18n="name">名前</span>
+            <input id="username" type="text" class="form-control" placeholder="例: ゲーマー">
           </div>
           <!-- コメント -->
           <div class="input-group mb-3">
-            <span class="input-group-text col-3" data-i18n="comment"></span>
-            <input id="message" type="text" class="form-control" placeholder="comment">
+            <span class="input-group-text col-3" data-i18n="comment">コメント</span>
+            <input id="message" type="text" class="form-control" placeholder="例: 最高！">
           </div>
 
           <!-- 画像カスタム / サウンド -->
-          <div class="mb-3 btn-group">
-            <a class="btn btn-secondary me-1" onclick="getClickBeforeImage()" data-i18n="img-before"></a>
+          <div class="mb-3 btn-group w-100">
+            <a class="btn btn-outline-light me-1 flex-fill" onclick="getClickBeforeImage()" data-i18n="img-before">タップ前画像</a>
             <input id="click-before-image" type="file" accept="image/*" class="d-none" onchange="saveClickBeforeImage()">
-            <a class="btn btn-secondary me-1" onclick="getClickAfterImage()"  data-i18n="img-after"></a>
+            <a class="btn btn-outline-light me-1 flex-fill" onclick="getClickAfterImage()"  data-i18n="img-after">タップ後画像</a>
             <input id="click-after-image" type="file" accept="image/*"  class="d-none" onchange="saveClickAfterImage()">
-            <a id="sound" class="btn btn-secondary" onclick="changeSoundMode()"></a>
+            <a id="sound" class="btn btn-outline-light flex-fill" onclick="changeSoundMode()">サウンドON/OFF</a>
           </div>
 
           <!-- キー・時間など -->
           <div class="input-group mb-3">
-            <span class="input-group-text col-3" data-i18n="key"></span>
+            <span class="input-group-text col-3" data-i18n="key">キー</span>
             <input id="keyboard" type="text" class="form-control" maxlength="4" placeholder="DFJK">
           </div>
           <div class="input-group mb-3">
-            <span class="input-group-text col-3" data-i18n="time"></span>
-            <input id="gameTime" type="text" class="form-control" maxlength="4" placeholder="20">
+            <span class="input-group-text col-3" data-i18n="time">時間(秒)</span>
+            <input id="gameTime" type="number" class="form-control" maxlength="4" placeholder="20"> <!-- number型の方が適切 -->
           </div>
 
-          <button class="btn btn-secondary btn-lg" onclick="show_btn();save_cookie();" data-i18n="ok"></button>
+          <button class="btn btn-primary btn-lg w-100" onclick="show_btn();save_cookie();" data-i18n="ok">OK</button>
         </div>
       </div>
     </div>
