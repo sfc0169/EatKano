@@ -356,7 +356,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // Original logic (当たり判定) - ここが修正箇所！
+    function gameTapEvent(e) { // 修正箇所: 間違ったタイルをタップした時に点滅させてから遅延処理
         if (_gameOver) {
             return false;
         }
@@ -376,7 +376,9 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
             (p.cell === 3 && eventX > 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty)
         ) {
-            if (!_gameStart) gameStart();
+            if (!_gameStart) {
+                gameStart();
+            }
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("tap");
             
             // target は p.id の要素に強制 (列タップの場合も正しいタイルに作用させるため)
@@ -396,10 +398,10 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => { tar.classList.remove('bad'); }, 500);
             } else {
-                // 修正: 点滅エフェクトを表示するために遅延を追加
-                setTimeout(() => {
-                    gameOver();
-                }, 700); // 0.7秒待ってからゲームオーバー処理
+                // ここが修正箇所: 赤い点滅エフェクトを表示するために遅延させる
+                setTimeout(() => { 
+                    gameOver(); 
+                }, 700); // アニメーション完了のために十分な時間（0.7秒）
             }
         }
         return false;
