@@ -6,7 +6,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 (function(w) {
   // ── ここから追加 ──
   const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'; // Replace with your actual Supabase anonymous key
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // Replace with your actual Supabase anonymous key
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // Assuming Supabase SDK provides supabase.createClient globally or createClient directly
 
   async function submitScore(score) {
