@@ -7,7 +7,7 @@ const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
 // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 // IMPORTANT: REPLACE WITH YOUR ACTUAL SUPABASE ANONYMOUS KEY
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // 提供されたキーを使用
 // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ─── End of Supabase Client Initialization ───
@@ -107,9 +107,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let fontunit = isDesktop ? 20 : ((window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth) / 320) * 10;
     document.write('<style type="text/css">' +
         'html,body {font-size:' + (fontunit < 30 ? fontunit : '30') + 'px;}' +
-        // ゲーム要素を中央揃えするために追加したCSS
-        '#gameBody {margin:0 auto; max-width:100%; position:relative;} ' +
-        '#GameLayerBG {margin:0 auto; position:relative;} ' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
             '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
         '</style>');
@@ -540,17 +537,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.location.href = link;
     }
 
-    // ここが問題！元のコードのように戻す - ブロック表示に修正
-    w.show_btn = function() { 
-        $("#btn_group,#desc").css('display', 'block'); // 'flex'から'block'に修正
-        $('#setting').css('display', 'none');
-    }
-    
+    w.show_btn = function() { $("#btn_group,#desc").css('display', 'block'); $('#setting').css('display', 'none'); }
     w.show_setting = function() { /* Original */
         $('#btn_group,#desc').css('display', 'none'); $('#setting').css('display', 'block');
         if (I18N) $('#sound').text(soundMode === 'on' ? (I18N['sound-on'] || 'Sound: ON') : (I18N['sound-off'] || 'Sound: OFF'));
     }
-    
     w.save_cookie = function() { /* Original */
         const s = ['username', 'message', 'keyboard', 'title', 'gameTime'];
         for (let k of s) { let v = $(`#${k}`).val(); if (v !== null && v !== undefined) cookie(k, String(v).trim(), 100); }
@@ -608,12 +599,5 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }`);
         });
     }
-
-    // 確実にゲームを初期化するためのコード追加
-    $(document).ready(function() {
-        if (typeof w.init === 'function') {
-            w.init();
-        }
-    });
 
 })(window);
