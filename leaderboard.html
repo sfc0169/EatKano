@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <!-- lang属性はJSで設定 -->
 <html>
@@ -179,7 +180,7 @@
 
       let queryBuilder = supaClient // ★★★ supabase を supaClient に変更 ★★★
         .from('leaderboard_highest_scores')
-        .select('name, score, comment, created_at', { count: 'exact' });
+        .select('name, score, comment, created_at, user_id', { count: 'exact' });
 
       const now = new Date();
       if (currentRankingType === 'day') {
@@ -230,7 +231,7 @@
                         <small class="text-muted">${formatDate(r.created_at)}</small>
                     </div>
                     <p class="mb-1 ms-1 mt-1">SCORE: <strong>${r.score}</strong></p>
-                    ${r.comment ? `<small class="text-muted ms-1 fst-italic">“${r.comment.length > 50 ? r.comment.substring(0, 50) + '...' : r.comment}”</small>` : `<small class="text-muted ms-1 fst-italic">${(I18N && I18N['no-message']) || 'No message'}</small>`}
+                    ${r.comment ? `<small class="text-muted ms-1 fst-italic">"${r.comment.length > 50 ? r.comment.substring(0, 50) + '...' : r.comment}"</small>` : `<small class="text-muted ms-1 fst-italic">${(I18N && I18N['no-message']) || 'No message'}</small>`}
                     `;
                     leaderboardElement.appendChild(li);
                 });
@@ -276,23 +277,36 @@
     }
     async function loadSelfRecord() {
       if (!selfRecordElement) return; // selfRecordElement の存在を確認
+      
+      // ユーザー名とユーザーIDの両方を取得
       const username = cookie('username');
-      if (username) {
+      const userId = cookie('user_id');
+      
+      if (username || userId) {
         try {
-          const { data, error } = await supaClient // ★★★ supabase を supaClient に変更 ★★★
+          let query = supaClient
             .from('leaderboard_highest_scores')
-            .select('score, created_at')
-            .eq('name', username)
-            .limit(1);
+            .select('score, created_at, name');
+          
+          // ユーザーIDがある場合はIDで検索、なければ名前で
+          if (userId) {
+            query = query.eq('user_id', userId);
+          } else if (username) {
+            query = query.eq('name', username);
+          }
+          
+          const { data, error } = await query.limit(1);
+          
           if (error) throw error;
           if (data && data.length > 0) {
             const record = data[0];
+            const displayName = record.name || username || ((I18N && I18N['anonymous']) || 'Anonymous');
             selfRecordElement.innerHTML = ((I18N && I18N['self-record']) || "{name}'s Record: Score {score} ({time})")
-              .replace('{name}', `<strong>${username}</strong>`)
+              .replace('{name}', `<strong>${displayName}</strong>`)
               .replace('{score}', `<strong>${record.score}</strong>`)
               .replace('{time}', formatDate(record.created_at));
           } else {
-            selfRecordElement.textContent = ((I18N && I18N['no-self-record']) || "No record found for {name}.").replace('{name}', username);
+            selfRecordElement.textContent = ((I18N && I18N['no-self-record']) || "No record found for {name}.").replace('{name}', username || ((I18N && I18N['you']) || 'you'));
           }
         } catch (e) {
             console.error('Self record load error:', e);
@@ -376,3 +390,4 @@
   </script>
 </body>
 </html>
+```
