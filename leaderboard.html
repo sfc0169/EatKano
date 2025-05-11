@@ -280,21 +280,23 @@
       // ユーザー名とユーザーIDの両方を取得
       const username = cookie('username');
       const userId = cookie('user_id');
+      console.log('Looking up record for user_id:', userId, 'username:', username);
       
-      if (username || userId) {
+      if (userId || username) {
         try {
           let query = supaClient
-            .from('leaderboard_highest_scores')
-            .select('score, created_at, name');
+            .from('leaderboard_highest_scores')  // ビューを使用して最高スコアのみ表示
+            .select('score, created_at, name')
+            .limit(1);
           
-          // ユーザーIDがある場合はIDで検索、なければ名前で
+          // 優先順位: user_id > username
           if (userId) {
             query = query.eq('user_id', userId);
           } else if (username) {
             query = query.eq('name', username);
           }
           
-          const { data, error } = await query.limit(1);
+          const { data, error } = await query;
           
           if (error) throw error;
           if (data && data.length > 0) {
