@@ -17,20 +17,77 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
         const scoreToSubmit = _gameScore;
+        const userId = getUserId(); // Get unique user ID from cookie
 
         try {
-            const { data, error } = await supaClient
+            // Check if user already has a record
+            const { data: existingData, error: selectError } = await supaClient
                 .from('leaderboard')
-                .insert([
-                    { name: usernameVal, score: scoreToSubmit, comment: messageVal }
-                ]);
+                .select('id, score')
+                .eq('user_id', userId)
+                .limit(1);
 
-            if (error) {
-                console.error('Supabase score submission error:', error);
+            if (selectError) {
+                console.error('Error checking existing score:', selectError);
+                return;
+            }
+
+            if (existingData && existingData.length > 0) {
+                // User exists - update only if new score is higher
+                const existingScore = existingData[0].score;
+                
+                if (scoreToSubmit > existingScore) {
+                    const { error: updateError } = await supaClient
+                        .from('leaderboard')
+                        .update({ 
+                            name: usernameVal, 
+                            score: scoreToSubmit, 
+                            comment: messageVal,
+                            updated_at: new Date()
+                        })
+                        .eq('id', existingData[0].id);
+                    
+                    if (updateError) {
+                        console.error('Supabase score update error:', updateError);
+                    }
+                }
+            } else {
+                // New user - insert new record
+                const { error: insertError } = await supaClient
+                    .from('leaderboard')
+                    .insert([{ 
+                        name: usernameVal, 
+                        score: scoreToSubmit, 
+                        comment: messageVal,
+                        user_id: userId
+                    }]);
+                
+                if (insertError) {
+                    console.error('Supabase score submission error:', insertError);
+                }
             }
         } catch (err) {
             console.error('Error submitting score:', err);
         }
+    }
+
+    // Get or create user ID
+    function getUserId() {
+        let userId = cookie('user_id');
+        if (!userId) {
+            userId = generateUUID();
+            cookie('user_id', userId, 365); // Store for 1 year
+        }
+        return userId;
+    }
+
+    // Generate a random UUID
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
     // ─── End of Supabase Submit Score Function ───
 
