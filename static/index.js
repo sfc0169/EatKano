@@ -47,61 +47,38 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     // ─── End of Supabase Submit Score Function ───
 
     function getJsonI18N() {
+        // https://developer.mozilla.org/zh-CN/docs/Web/API/Navigator/language
+        
         const LANGUAGES = [
             { regex: /^zh\b/, lang: 'zh' },
             { regex: /^ja\b/, lang: 'ja' },
             { regex: /.*/, lang: 'en'}
-        ];
-        const lang = LANGUAGES.find(l => l.regex.test(navigator.language))?.lang || 'en';
+        ]
+
+        const lang = LANGUAGES.find(l => l.regex.test(navigator.language)).lang
         
-        let i18nData = null; // Initialize to null
-        $.ajax({
+        return $.ajax({
             url: `./static/i18n/${lang}.json`,
             dataType: 'json',
             method: 'GET',
-            async: false, // Synchronous: Blocks execution until complete.
-            success: data => i18nData = data, // Assign to local i18nData
-            error: () => {
-                // alert('找不到语言文件: ' + lang); // Original alert
-                console.warn('Language file not found: ' + lang + '.json. Falling back to English.');
-                $.ajax({
-                    url: `./static/i18n/en.json`,
-                    dataType: 'json',
-                    method: 'GET',
-                    async: false,
-                    success: data => i18nData = data,
-                    error: () => {
-                        console.error('English language file also not found.');
-                        i18nData = {}; // Assign empty object to prevent errors
-                    }
-                });
-            }
-        });
-        return i18nData;
+            async: false,
+            success: data => res = data,
+            error: () => alert('找不到语言文件: ' + lang)
+        }).responseJSON
     }
 
-    const I18N = getJsonI18N();
+    const I18N = getJsonI18N()
 
-    // Apply I18N texts after DOM is ready
-    $(function() {
-        if (I18N) { // Check if I18N was loaded successfully
-            $('[data-i18n]').each(function() {
-                const key = this.dataset.i18n;
-                if (I18N[key] !== undefined) {
-                    $(this).text(I18N[key]);
-                }
-            });
-            $('[data-placeholder-i18n]').each(function() {
-                const key = this.dataset.placeholderI18n;
-                if (I18N[key] !== undefined) {
-                    $(this).attr('placeholder', I18N[key]);
-                }
-            });
-            if (I18N['lang']) {
-                $('html').attr('lang', I18N['lang']);
-            }
-        }
+    $('[data-i18n]').each(function() {
+        const content = I18N[this.dataset.i18n];
+        $(this).text(content);
     });
+
+    $('[data-placeholder-i18n]').each(function() {
+        $(this).attr('placeholder', I18N[this.dataset.placeholderI18n]);
+    });
+
+    $('html').attr('lang', I18N['lang']);
 
     let isDesktop = !navigator['userAgent'].match(/(ipad|iphone|ipod|android|windows phone)/i);
     let fontunit = isDesktop ? 20 : ((window.innerWidth > window.innerHeight ? window.innerHeight : window.innerWidth) / 320) * 10;
@@ -110,14 +87,13 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
             '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
         '</style>');
-
     let map = {'d': 1, 'f': 2, 'j': 3, 'k': 4};
     if (isDesktop) {
-        document.write('<div id="gameBody">'); // オリジナルに合わせて開始タグだけを書き込む
+        document.write('<div id="gameBody">');
         document.onkeydown = function (e) {
             let key = e.key.toLowerCase();
-            if (map.hasOwnProperty(key)) { // More direct check
-                click(map[key]);
+            if (Object.keys(map).indexOf(key) !== -1) {
+                click(map[key])
             }
         }
     }
@@ -128,210 +104,243 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let transform, transitionDuration, welcomeLayerClosed;
 
     let mode = getMode();
+
     let soundMode = getSoundMode();
 
     w.init = function() {
-        // オリジナルコードに合わせて実装
         showWelcomeLayer();
         body = document.getElementById('gameBody') || document.body;
         body.style.height = window.innerHeight + 'px';
-
-        transform = typeof (body.style.webkitTransform) !== 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !==
+        transform = typeof (body.style.webkitTransform) != 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !=
         'undefined' ? 'msTransform' : 'transform');
         transitionDuration = transform.replace(/ransform/g, 'ransitionDuration');
-
         GameTimeLayer = document.getElementById('GameTimeLayer');
         GameLayer.push(document.getElementById('GameLayer1'));
         GameLayer[0].children = GameLayer[0].querySelectorAll('div');
         GameLayer.push(document.getElementById('GameLayer2'));
         GameLayer[1].children = GameLayer[1].querySelectorAll('div');
         GameLayerBG = document.getElementById('GameLayerBG');
-
-        if (GameLayerBG) {
-            if (GameLayerBG.ontouchstart === null) {
-                GameLayerBG.ontouchstart = gameTapEvent;
-            } else {
-                GameLayerBG.onmousedown = gameTapEvent;
-            }
+        if (GameLayerBG.ontouchstart === null) {
+            GameLayerBG.ontouchstart = gameTapEvent;
         } else {
-            console.error("GameLayerBG not found in init.");
-            return;
+            GameLayerBG.onmousedown = gameTapEvent;
         }
-
         gameInit();
         initSetting();
         window.addEventListener('resize', refreshSize, false);
     }
 
-    function getMode() { // Original
-        const modeCookie = cookie('gameMode');
-        return modeCookie ? parseInt(modeCookie) : MODE_NORMAL;
+    function getMode() {
+        //有cookie优先返回cookie记录的，没有再返回normal
+        return cookie('gameMode') ? parseInt(cookie('gameMode')) : MODE_NORMAL;
     }
 
-    function getSoundMode() { // Original
-        return cookie('soundMode') || 'on';
+    function getSoundMode() {
+        // 默认为 on
+        return cookie('soundMode') ? cookie('soundMode') : 'on';
     }
 
-    w.changeSoundMode = function() { // Original, with I18N check
-        soundMode = (soundMode === 'on' ? 'off' : 'on');
-        if (I18N) $('#sound').text(I18N[soundMode === 'on' ? 'sound-on' : 'sound-off']);
-        cookie('soundMode', soundMode, 100);
+    w.changeSoundMode = function() {
+        if (soundMode === 'on') {
+            soundMode = 'off';
+            $('#sound').text(I18N['sound-off']);
+        } else {
+            soundMode = 'on';
+            $('#sound').text(I18N['sound-on']);
+        }
+        cookie('soundMode', soundMode);
     }
 
-    function modeToString(m) { // Original, with I18N check
-        if(!I18N) return "Mode";
+    function modeToString(m) {
         return m === MODE_NORMAL ? I18N['normal'] : (m === MODE_ENDLESS ? I18N['endless'] : I18N['practice']);
     }
 
-    w.changeMode = function(m) { // Original
+    w.changeMode = function(m) {
         mode = m;
-        cookie('gameMode', m, 100);
+        cookie('gameMode', m);
         $('#mode').text(modeToString(m));
     }
 
-    w.readyBtn = function() { // Original
+    w.readyBtn = function() {
         closeWelcomeLayer();
         updatePanel();
     }
 
-    w.winOpen = function() { // Original
+    w.winOpen = function() {
         window.open(location.href + '?r=' + Math.random(), 'nWin', 'height=500,width=320,toolbar=no,menubar=no,scrollbars=no');
         let opened = window.open('about:blank', '_self');
-        if(opened) { opened.opener = null; opened.close(); }
+        opened.opener = null;
+        opened.close();
     }
 
-    let refreshSizeTime; // Original
-    function refreshSize() { clearTimeout(refreshSizeTime); refreshSizeTime = setTimeout(_refreshSize, 200); }
+    let refreshSizeTime;
 
-    function _refreshSize() { // Original logic, with fixes for original
-        if (!body) body = document.getElementById('gameBody') || document.body;
-        if (!body || body.offsetWidth === 0) return;
+    function refreshSize() {
+        clearTimeout(refreshSizeTime);
+        refreshSizeTime = setTimeout(_refreshSize, 200);
+    }
+
+    function _refreshSize() {
         countBlockSize();
-        if (blockSize <= 0) return;
-        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) return;
-
         for (let i = 0; i < GameLayer.length; i++) {
             let box = GameLayer[i];
             for (let j = 0; j < box.children.length; j++) {
-                let r = box.children[j], rstyle = r.style;
+                let r = box.children[j],
+                    rstyle = r.style;
                 rstyle.left = (j % 4) * blockSize + 'px';
                 rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
-                rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
+                rstyle.width = blockSize + 'px';
+                rstyle.height = blockSize + 'px';
             }
         }
         let f, a;
-        if (GameLayer[0].y > GameLayer[1].y) { f = GameLayer[0]; a = GameLayer[1]; }
-        else { f = GameLayer[1]; a = GameLayer[0]; }
+        if (GameLayer[0].y > GameLayer[1].y) {
+            f = GameLayer[0];
+            a = GameLayer[1];
+        } else {
+            f = GameLayer[1];
+            a = GameLayer[0];
+        }
         let y = ((_gameBBListIndex) % 10) * blockSize;
-        f.y = y; f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
-        a.y = -blockSize * Math.floor(f.children.length / 4) + y; // オリジナルに合わせた計算式
+        f.y = y;
+        f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
+        a.y = -blockSize * Math.floor(f.children.length / 4) + y;
         a.style[transform] = 'translate3D(0,' + a.y + 'px,0)';
     }
 
-    function countBlockSize() { // Original logic, with checks
-        if (!body) body = document.getElementById('gameBody') || document.body;
-        if (!body || body.offsetWidth === 0) return;
+    function countBlockSize() {
         blockSize = body.offsetWidth / 4;
         body.style.height = window.innerHeight + 'px';
-        if (GameLayerBG) GameLayerBG.style.height = window.innerHeight + 'px';
+        GameLayerBG.style.height = window.innerHeight + 'px';
         touchArea[0] = window.innerHeight;
         touchArea[1] = window.innerHeight - blockSize * 3;
     }
 
-    let _gameBBList = [], _gameBBListIndex = 0, _gameOver = false, _gameStart = false,
-        _gameSettingNum=20, _gameTime, _gameTimeNum, _gameScore, _date1, deviationTime;
+    let _gameBBList = [],
+        _gameBBListIndex = 0,
+        _gameOver = false,
+        _gameStart = false,
+        _gameSettingNum=20,
+        _gameTime, _gameTimeNum, _gameScore, _date1, deviationTime;
+
     let _gameStartTime, _gameStartDatetime;
 
-    function gameInit() { // Original
-        if (typeof createjs !== 'undefined' && createjs.Sound) {
-            createjs.Sound.registerSound({ src: "./static/music/err.mp3", id: "err" });
-            createjs.Sound.registerSound({ src: "./static/music/end.mp3", id: "end" });
-            createjs.Sound.registerSound({ src: "./static/music/tap.mp3", id: "tap" });
-        }
+    function gameInit() {
+        createjs.Sound.registerSound({
+            src: "./static/music/err.mp3",
+            id: "err"
+        });
+        createjs.Sound.registerSound({
+            src: "./static/music/end.mp3",
+            id: "end"
+        });
+        createjs.Sound.registerSound({
+            src: "./static/music/tap.mp3",
+            id: "tap"
+        });
         gameRestart();
     }
 
-    function gameRestart() { // Original, with checks
-        _gameBBList = []; _gameBBListIndex = 0; _gameScore = 0; _gameOver = false; _gameStart = false;
-        _gameSettingNum = parseInt(cookie('gameTime')) || 20;
-        _gameTimeNum = _gameSettingNum; _gameStartTime = 0; _date1 = null; deviationTime = 0;
-        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) { return; }
+    function gameRestart() {
+        _gameBBList = [];
+        _gameBBListIndex = 0;
+        _gameScore = 0;
+        _gameOver = false;
+        _gameStart = false;
+        _gameTimeNum = _gameSettingNum;
+        _gameStartTime = 0;
         countBlockSize();
-        if (blockSize > 0) {
-            refreshGameLayer(GameLayer[0]); refreshGameLayer(GameLayer[1], 1);
-        }
+        refreshGameLayer(GameLayer[0]);
+        refreshGameLayer(GameLayer[1], 1);
         updatePanel();
     }
 
-    function gameStart() { // Original
-        _date1 = new Date(); _gameStartDatetime = _date1.getTime(); _gameStart = true; _gameStartTime = 0;
-        if(_gameTime) clearInterval(_gameTime);
+    function gameStart() {
+        _date1 = new Date();
+        _gameStartDatetime = _date1.getTime();
+        _gameStart = true;
+
         _gameTime = setInterval(timer, 1000);
     }
 
-    function getCPS() { // Original
-        const elapsedTime = (new Date().getTime() - _gameStartDatetime) / 1000;
-        if (elapsedTime <= 0 || _gameScore === 0) return 0;
-        let cps = _gameScore / elapsedTime;
-        return isNaN(cps) || !isFinite(cps) || _gameStartTime < 2 ? 0 : cps;
+    function getCPS() {
+        let cps = _gameScore / ((new Date().getTime() - _gameStartDatetime) / 1000);
+        if (isNaN(cps) || cps === Infinity || _gameStartTime < 2) {
+            cps = 0;
+        }
+        return cps;
     }
 
-    function timer() { // Original, with checks
-        _gameTimeNum--; _gameStartTime++;
+    function timer() {
+        _gameTimeNum--;
+        _gameStartTime++;
         if (mode === MODE_NORMAL && _gameTimeNum <= 0) {
-            if (GameTimeLayer && I18N) GameTimeLayer.innerHTML = (I18N['time-up'] || 'Time Up') + '!';
+            GameTimeLayer.innerHTML = I18N['time-up'] + '!';
             gameOver();
-            if (GameLayerBG) GameLayerBG.className += ' flash'; // fork元に合わせてclassNameで操作
-            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("end");
+            GameLayerBG.className += ' flash';
+            if (soundMode === 'on') {
+                createjs.Sound.play("end");
+            }
         }
         updatePanel();
     }
 
-    function updatePanel() { // Original, with checks
-        if (!GameTimeLayer) GameTimeLayer = document.getElementById('GameTimeLayer');
-        if (!GameTimeLayer || !I18N) return;
+    function updatePanel() {
         if (mode === MODE_NORMAL) {
-            if (!_gameOver) GameTimeLayer.innerHTML = createTimeText(_gameTimeNum);
+            if (!_gameOver) {
+                GameTimeLayer.innerHTML = createTimeText(_gameTimeNum);
+            }
         } else if (mode === MODE_ENDLESS) {
             let cps = getCPS();
-            let text = (cps === 0 && _gameScore === 0 ? (I18N['calculating'] || 'Calculating...') : cps.toFixed(2));
+            let text = (cps === 0 ? I18N['calculating'] : cps.toFixed(2));
             GameTimeLayer.innerHTML = `CPS:${text}`;
-        } else { GameTimeLayer.innerHTML = `SCORE:${_gameScore}`; }
+        } else {
+            GameTimeLayer.innerHTML = `SCORE:${_gameScore}`;
+        }
+    }
+    //使重试按钮获得焦点
+    function foucusOnReplay(){
+        $('#replay').focus()
     }
 
-    function foucusOnReplay(){ // fork元に合わせてスペルも同じにする
-        const replayBtnEl = document.getElementById('replay');
-        if (replayBtnEl) replayBtnEl.focus();
-    }
-
-    function gameOver() { // fork元に合わせて実装
-        _gameOver = true; 
+    function gameOver() {
+        _gameOver = true;
         clearInterval(_gameTime);
-        let cps = getCPS(); 
+        let cps = getCPS();
         updatePanel();
         setTimeout(function () {
-            GameLayerBG.className = ''; // fork元に合わせてclassNameで操作
+            GameLayerBG.className = '';
             showGameScoreLayer(cps);
             foucusOnReplay();
         }, 1500);
     }
 
-    function createTimeText(n) { return 'TIME:' + Math.max(0, Math.ceil(n)); } // Original
+    function createTimeText(n) {
+        return 'TIME:' + Math.ceil(n);
+    }
 
-    let _ttreg = / t{1,2}(\d+)/, _clearttClsReg = / t{1,2}\d+| bad/; // Original
+    let _ttreg = / t{1,2}(\d+)/,
+        _clearttClsReg = / t{1,2}\d+| bad/;
 
-    function refreshGameLayer(box, loop, offset) { // フォーク元と同じ実装
-        if (!box?.children || blockSize <= 0) return;
+    function refreshGameLayer(box, loop, offset) {
         let i = Math.floor(Math.random() * 1000) % 4 + (loop ? 0 : 4);
         for (let j = 0; j < box.children.length; j++) {
             let r = box.children[j], rstyle = r.style;
-            rstyle.left = (j % 4) * blockSize + 'px'; rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
-            rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
-            r.className = r.className.replace(_clearttClsReg, ''); r.notEmpty = false;
+            rstyle.left = (j % 4) * blockSize + 'px';
+            rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
+            rstyle.width = blockSize + 'px';
+            rstyle.height = blockSize + 'px';
+            r.className = r.className.replace(_clearttClsReg, '');
             if (i === j) {
-                _gameBBList.push({ cell: i % 4, id: r.id });
-                r.className += ' t' + (Math.floor(Math.random() * 1000) % 5 + 1); r.notEmpty = true;
+                _gameBBList.push({
+                    cell: i % 4,
+                    id: r.id
+                });
+                r.className += ' t' + (Math.floor(Math.random() * 1000) % 5 + 1);
+                r.notEmpty = true;
                 i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 1000) % 4;
+            } else {
+                r.notEmpty = false;
             }
         }
         if (loop) {
@@ -351,63 +360,50 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         box.style[transitionDuration] = '150ms';
     }
 
-    function gameLayerMoveNextRow() { // Original logic
+    function gameLayerMoveNextRow() {
         for (let i = 0; i < GameLayer.length; i++) {
-            let g = GameLayer[i]; if (!g?.children) continue;
+            let g = GameLayer[i];
             g.y += blockSize;
             if (g.y > blockSize * (Math.floor(g.children.length / 4))) {
                 refreshGameLayer(g, 1, -1);
-            } else { g.style[transform] = 'translate3D(0,' + g.y + 'px,0)'; }
+            } else {
+                g.style[transform] = 'translate3D(0,' + g.y + 'px,0)';
+            }
         }
     }
 
-    function gameTapEvent(e) { // fork元に完全に合わせた実装
+    function gameTapEvent(e) {
         if (_gameOver) {
             return false;
         }
         let tar = e.target;
-        let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
-        let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
-        
-        if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return false;
-        let p = _gameBBList[_gameBBListIndex];
-        
-        if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) {
+        let y = e.clientY || e.targetTouches[0].clientY,
+            x = (e.clientX || e.targetTouches[0].clientX) - body.offsetLeft,
+            p = _gameBBList[_gameBBListIndex];
+        if (y > touchArea[0] || y < touchArea[1]) {
             return false;
         }
-
-        if ((p.id === tar.id && tar.notEmpty) || 
-            (p.cell === 0 && eventX < blockSize) || 
-            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize) || 
-            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize) || 
-            (p.cell === 3 && eventX > 3 * blockSize)) {
-            
+        if ((p.id === tar.id && tar.notEmpty) || (p.cell === 0 && x < blockSize) || (p.cell === 1 && x > blockSize && x < 2 *
+            blockSize) || (p.cell === 2 && x > 2 * blockSize && x < 3 * blockSize) || (p.cell === 3 && x > 3 * blockSize)) {
             if (!_gameStart) {
                 gameStart();
             }
-            
-            if (soundMode === 'on' && createjs?.Sound) {
+            if (soundMode === 'on') {
                 createjs.Sound.play("tap");
             }
-            
             tar = document.getElementById(p.id);
-            if (tar) {
-                tar.className = tar.className.replace(_ttreg, ' tt$1');
-                tar.notEmpty = false;
-            }
-            
+            tar.className = tar.className.replace(_ttreg, ' tt$1');
             _gameBBListIndex++;
             _gameScore++;
-            
+
             updatePanel();
+
             gameLayerMoveNextRow();
         } else if (_gameStart && !tar.notEmpty) {
-            if (soundMode === 'on' && createjs?.Sound) {
+            if (soundMode === 'on') {
                 createjs.Sound.play("err");
             }
-            
             tar.classList.add('bad');
-            
             if (mode === MODE_PRACTICE) {
                 setTimeout(() => {
                     tar.classList.remove('bad');
@@ -419,7 +415,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return false;
     }
 
-    function createGameLayer() { // Original
+    function createGameLayer() {
         let html = '<div id="GameLayerBG">';
         for (let i = 1; i <= 2; i++) {
             let id = 'GameLayer' + i;
@@ -437,97 +433,166 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return html;
     }
 
-    function closeWelcomeLayer() { /* Original */ welcomeLayerClosed = true; $('#welcome').css('display', 'none'); updatePanel(); }
-    function showWelcomeLayer() { /* Original */ welcomeLayerClosed = false; $('#mode').text(modeToString(mode)); $('#welcome').css('display', 'block'); }
-    function getBestScore(currentScore) { /* Original (bast->best fix) */
+    function closeWelcomeLayer() {
+        welcomeLayerClosed = true;
+        $('#welcome').css('display', 'none');
+        updatePanel();
+    }
+
+    function showWelcomeLayer() {
+        welcomeLayerClosed = false;
+        $('#mode').text(modeToString(mode));
+        $('#welcome').css('display', 'block');
+    }
+
+    function getBestScore(score) {
+        // 练习模式不会进入算分界面
         let cookieName = (mode === MODE_NORMAL ? 'best-score' : 'endless-best-score');
-        let best = parseFloat(cookie(cookieName)) || 0;
-        if (currentScore > best) { best = currentScore; cookie(cookieName, best.toFixed(mode === MODE_ENDLESS ? 2 : 0), 100); }
+        let best = cookie(cookieName) ? Math.max(parseFloat(cookie(cookieName)), score) : score;
+        cookie(cookieName, best.toFixed(2), 100);
         return best;
     }
-    function scoreToString(s) { /* Original */ return mode === MODE_ENDLESS ? parseFloat(s).toFixed(2) : String(Math.floor(s)); }
-    function legalDeviationTime() { /* Original */ return _date1 ? deviationTime < (_gameSettingNum + 3) * 1000 : true; }
 
-    function showGameScoreLayer(cps) { // Original, with minor jQuery safety
-        const gameScoreLayer = $('#GameScoreLayer');
-        if (_gameBBList.length > 0 && _gameBBListIndex > 0 && _gameBBList[_gameBBListIndex - 1]) {
-            const lastBlock = $(`#${_gameBBList[_gameBBListIndex - 1].id}`);
-            if (lastBlock.length) {
-                const classAttr = lastBlock.attr('class');
-                if (classAttr) {
-                    const cMatch = classAttr.match(_ttreg);
-                    if (cMatch && cMatch[1]) gameScoreLayer.attr('class', 'BBOX SHADE bgc' + cMatch[1]);
-                    else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
-                } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
-            } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
-        } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
-        
-        $('#GameScoreLayer-text').html(shareText(cps)); // Calls Supabase submission
-        let scoreVal = (mode === MODE_ENDLESS ? cps : _gameScore);
-        let best = getBestScore(scoreVal);
-        gameScoreLayer.css('color', (mode !== MODE_NORMAL || legalDeviationTime()) ? '' : 'red');
+    function scoreToString(score) {
+        return mode === MODE_ENDLESS ? score.toFixed(2) : score.toString();
+    }
+
+    function legalDeviationTime() {
+        return deviationTime < (_gameSettingNum + 3) * 1000;
+    }
+
+    function showGameScoreLayer(cps) {
+        let l = $('#GameScoreLayer');
+        let c = $(`#${_gameBBList[_gameBBListIndex - 1].id}`).attr('class').match(_ttreg)[1];
+        let score = (mode === MODE_ENDLESS ? cps : _gameScore);
+        let best = getBestScore(score);
+        l.attr('class', l.attr('class').replace(/bgc\d/, 'bgc' + c));
+        $('#GameScoreLayer-text').html(shareText(cps));
+        let normalCond = legalDeviationTime() || mode !== MODE_NORMAL;
+        l.css('color', normalCond ? '': 'red');
+
         $('#cps').text(cps.toFixed(2));
-        $('#score').text(scoreToString(_gameScore));
+        $('#score').text(scoreToString(score));
         $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : '');
         $('#best').text(scoreToString(best));
-        gameScoreLayer.css('display', 'block');
+
+        l.css('display', 'block');
     }
 
-    function hideGameScoreLayer() { /* Original */ $('#GameScoreLayer').css('display', 'none'); }
-    w.replayBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); }
-    w.backBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); showWelcomeLayer(); }
+    function hideGameScoreLayer() {
+        $('#GameScoreLayer').css('display', 'none');
+    }
 
-    function shareText(cps) { // Modified for Supabase
+    w.replayBtn = function() {
+        gameRestart();
+        hideGameScoreLayer();
+    }
+
+    w.backBtn = function() {
+        gameRestart();
+        hideGameScoreLayer();
+        showWelcomeLayer();
+    }
+
+    function shareText(cps) {
         if (mode === MODE_NORMAL) {
-            let date2 = new Date(); if (!_date1) _date1 = date2;
-            deviationTime = (date2.getTime() - _date1.getTime());
+            let date2 = new Date();
+            deviationTime = (date2.getTime() - _date1.getTime())
             if (!legalDeviationTime()) {
-                return (I18N ? I18N['time-over'] : 'Time over by: ') + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
+                return I18N['time-over'] + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
             }
-            SubmitResultsToSupabase(); // ★★★ Supabase送信 ★★★
+            SubmitResultsToSupabase();
         }
-        if (!I18N) return "Score: " + cps.toFixed(2);
-        if (cps <= 5) return I18N['text-level-1'] || 'Lvl 1'; if (cps <= 8) return I18N['text-level-2'] || 'Lvl 2';
-        if (cps <= 10) return I18N['text-level-3'] || 'Lvl 3'; if (cps <= 15) return I18N['text-level-4'] || 'Lvl 4';
-        return I18N['text-level-5'] || 'Lvl 5';
+
+        if (cps <= 5) return I18N['text-level-1'];
+        if (cps <= 8) return I18N['text-level-2'];
+        if (cps <= 10)  return I18N['text-level-3'];
+        if (cps <= 15) return I18N['text-level-4'];
+        return I18N['text-level-5'];
     }
 
-    function toStr(obj) { /* Original */ if (typeof obj === 'object') { try {return JSON.stringify(obj);} catch(e){return String(obj);}} else { return String(obj); } }
-    function cookie(name, value, timeInDays) { /* Modified (no eval) */
+    function toStr(obj) {
+        if (typeof obj === 'object') {
+            return JSON.stringify(obj);
+        } else {
+            return obj;
+        }
+    }
+
+    function cookie(name, value, time) {
         if (name) {
-            if (value !== undefined) {
-                let expires = ""; if (timeInDays) { let date = new Date(); date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000)); expires = "; expires=" + date.toUTCString(); }
-                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/"; return true;
-            } else {
-                let nameEQ = name + "="; let ca = document.cookie.split(';');
-                for (let i = 0; i < ca.length; i++) {
-                    let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                    if (c.indexOf(nameEQ) === 0) {
-                        let valStr = unescape(c.substring(nameEQ.length, c.length));
-                        try { if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr); if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr); } catch (e) {}
-                        return valStr;
-                    }
-                } return null;
+            if (value) {
+                if (time) {
+                    let date = new Date();
+                    date.setTime(date.getTime() + 864e5 * time), time = date.toGMTString();
+                }
+                return document.cookie = name + "=" + escape(toStr(value)) + (time ? "; expires=" + time + (arguments[3] ?
+                    "; domain=" + arguments[3] + (arguments[4] ? "; path=" + arguments[4] + (arguments[5] ? "; secure" : "") : "") :
+                    "") : ""), !0;
+            }
+            return value = document.cookie.match("(?:^|;)\\s*" + name.replace(/([-.*+?^${}()|[\]\/\\])/g, "\\$1") + "=([^;]*)"),
+                value = value && "string" == typeof value[1] ? unescape(value[1]) : !1, (/^(\{|\[).+\}|\]$/.test(value) ||
+                /^[0-9]+$/g.test(value)) && eval("value=" + value), value;
+        }
+        let data = {};
+        value = document.cookie.replace(/\s/g, "").split(";");
+        for (let i = 0; value.length > i; i++) name = value[i].split("="), name[1] && (data[name[0]] = unescape(name[1]));
+        return data;
+    }
+
+    document.write(createGameLayer());
+
+    function initSetting() {
+        $("#username").val(cookie("username") ? cookie("username") : "");
+        $("#message").val(cookie("message") ? cookie("message") : "");
+        if (cookie("title")) {
+            $('title').text(cookie('title'));
+            $('#title').val(cookie('title'));
+        }
+        let keyboard = cookie('keyboard');
+        if (keyboard) {
+            keyboard = keyboard.toString().toLowerCase();
+            $("#keyboard").val(keyboard);
+            map = {}
+            map[keyboard.charAt(0)] = 1;
+            map[keyboard.charAt(1)] = 2;
+            map[keyboard.charAt(2)] = 3;
+            map[keyboard.charAt(3)] = 4;
+        }
+        if (cookie('gameTime')) {
+            $('#gameTime').val(cookie('gameTime'));
+            _gameSettingNum = parseInt(cookie('gameTime'));
+            gameRestart();
+        }
+    }
+
+    w.show_btn = function() {
+        $("#btn_group,#desc").css('display', 'block')
+        $('#setting').css('display', 'none')
+    }
+
+    w.show_setting = function() {
+        $('#btn_group,#desc').css('display', 'none')
+        $('#setting').css('display', 'block')
+        $('#sound').text(soundMode === 'on' ? I18N['sound-on'] : I18N['sound-off']);
+    }
+
+    w.save_cookie = function() {
+        const settings = ['username', 'message', 'keyboard', 'title', 'gameTime'];
+        for (let s of settings) {
+            let value=$(`#${s}`).val();
+            if(value){
+                cookie(s, value.toString(), 100);
             }
         }
-        let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
+        initSetting();
     }
 
-    document.write(createGameLayer()); // オリジナルに合わせて直接書き込み
-
-    function initSetting() { /* Original */
-        $("#username").val(cookie("username") || ""); $("#message").val(cookie("message") || "");
-        const titleVal = cookie("title"); if (titleVal) { $('title').text(titleVal); $('#title').val(titleVal); }
-        const keyboardVal = cookie("keyboard");
-        if (keyboardVal) {
-            const kbStr = String(keyboardVal).toLowerCase(); $("#keyboard").val(kbStr);
-            if(kbStr.length === 4) { map = {}; map[kbStr.charAt(0)] = 1; map[kbStr.charAt(1)] = 2; map[kbStr.charAt(2)] = 3; map[kbStr.charAt(3)] = 4; }
-        }
-        const gameTimeVal = cookie('gameTime');
-        if (gameTimeVal) { const gt = parseInt(gameTimeVal); if (!isNaN(gt) && gt > 0) { $('#gameTime').val(gt); _gameSettingNum = gt; } }
+    function isnull(val) {
+        let str = val.replace(/(^\s*)|(\s*$)/g, '');
+        return str === '' || str === undefined || str == null;
     }
 
-    // ランキング機能 - フォーク元から復元
     w.goRank = function() {
         let name = $("#username").val();
         let link = './rank.php';
@@ -537,37 +602,23 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         window.location.href = link;
     }
 
-    w.show_btn = function() { $("#btn_group,#desc").css('display', 'block'); $('#setting').css('display', 'none'); }
-    w.show_setting = function() { /* Original */
-        $('#btn_group,#desc').css('display', 'none'); $('#setting').css('display', 'block');
-        if (I18N) $('#sound').text(soundMode === 'on' ? (I18N['sound-on'] || 'Sound: ON') : (I18N['sound-off'] || 'Sound: OFF'));
-    }
-    w.save_cookie = function() { /* Original */
-        const s = ['username', 'message', 'keyboard', 'title', 'gameTime'];
-        for (let k of s) { let v = $(`#${k}`).val(); if (v !== null && v !== undefined) cookie(k, String(v).trim(), 100); }
-        const gtVal = $('#gameTime').val(); if(gtVal){ const ngt = parseInt(gtVal); if(!isNaN(ngt) && ngt > 0) _gameSettingNum = ngt; }
-        initSetting();
-    }
-    function isnull(val) { /* Original */ if (val === null || val === undefined) return true; return String(val).replace(/(^\s*)|(\s*$)/g, '') === ''; }
-
-    function click(index) { /* Original logic (with target block finding adjusted) */
-        if (!welcomeLayerClosed || _gameOver || _gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return;
-        let p = _gameBBList[_gameBBListIndex];
-        const currentBlockEl = document.getElementById(p.id); if (!currentBlockEl) return;
-        const parentEl = currentBlockEl.parentElement; if (!parentEl) return;
-        const currentBlockNumAttr = currentBlockEl.getAttribute("num"); if(currentBlockNumAttr === null) return;
-        const currentBlockNum = parseInt(currentBlockNumAttr);
-        const rowStartNum = currentBlockNum - p.cell;
-        const targetCol = index - 1;
-        const targetGlobalNum = rowStartNum + targetCol;
-        let targetEl = null;
-        for (let i = 0; i < parentEl.children.length; i++) {
-            if (parentEl.children[i].getAttribute("num") === String(targetGlobalNum)) {
-                targetEl = parentEl.children[i]; break;
-            }
+    function click(index) {
+        if (!welcomeLayerClosed) {
+            return;
         }
-        if (!targetEl) return;
-        let fakeEvent = { target: targetEl, clientX: (targetCol + 0.5) * blockSize + (body ? body.offsetLeft : 0), clientY: (touchArea[1] !== undefined ? (touchArea[0] + touchArea[1]) / 2 : window.innerHeight / 2) };
+
+        let p = _gameBBList[_gameBBListIndex];
+        let base = parseInt($(`#${p.id}`).attr("num")) - p.cell;
+        let num = base + index - 1;
+        let id = p.id.substring(0, 11) + num;
+
+        let fakeEvent = {
+            clientX: ((index - 1) * blockSize + index * blockSize) / 2 + body.offsetLeft,
+            // Make sure that it is in the area
+            clientY: (touchArea[0] + touchArea[1]) / 2,
+            target: document.getElementById(id),
+        };
+
         gameTapEvent(fakeEvent);
     }
 
@@ -576,28 +627,44 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     clickBeforeStyle.appendTo($(document.head));
     clickAfterStyle.appendTo($(document.head));
 
-    function saveImage(dom, callback) { /* Original */ if (dom.files && dom.files[0]) { let r = new FileReader(); r.onload = function() { callback(this.result); }; r.readAsDataURL(dom.files[0]); } }
-    w.getClickBeforeImage = function() { /* Original */ $('#click-before-image').click(); }
+    function saveImage(dom, callback) {
+        if (dom.files && dom.files[0]) {
+            let reader = new FileReader();
+            reader.onload = function() {
+                callback(this.result);
+            }
+            reader.readAsDataURL(dom.files[0]);
+        }
+    }
+
+
+    w.getClickBeforeImage = function() {
+        $('#click-before-image').click();
+    }
+
     w.saveClickBeforeImage = function() {
-        const i = document.getElementById('click-before-image');
-        saveImage(i, r => {
+        const img = document.getElementById('click-before-image');
+        saveImage(img, r => {
             clickBeforeStyle.html(`
                 .t1, .t2, .t3, .t4, .t5 {
                    background-size: auto 100%;
                    background-image: url(${r});
             }`);
-        });
+        })
     }
-    w.getClickAfterImage = function() { /* Original */ $('#click-after-image').click(); }
+
+    w.getClickAfterImage = function() {
+        $('#click-after-image').click();
+    }
+
     w.saveClickAfterImage = function() {
-        const i = document.getElementById('click-after-image');
-        saveImage(i, r => {
+        const img = document.getElementById('click-after-image');
+        saveImage(img, r => {
             clickAfterStyle.html(`
                 .tt1, .tt2, .tt3, .tt4, .tt5 {
                   background-size: auto 86%;
                   background-image: url(${r});
             }`);
-        });
+        })
     }
-
-})(window);
+}) (window);
