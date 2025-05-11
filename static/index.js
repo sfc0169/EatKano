@@ -203,16 +203,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if(opened) { opened.opener = null; opened.close(); }
     }
 
-    // ランキング機能を追加 - これが欠けていた
-    w.goRank = function() {
-        let name = $("#username").val();
-        let link = './rank.php'; // ランキングページパス
-        if (!isnull(name)) {
-            link += "?name=" + name;
-        }
-        window.location.href = link;
-    }
-
     let refreshSizeTime; // Original
     function refreshSize() { clearTimeout(refreshSizeTime); refreshSizeTime = setTimeout(_refreshSize, 200); }
 
@@ -333,7 +323,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let _ttreg = / t{1,2}(\d+)/, _clearttClsReg = / t{1,2}\d+| bad/; // Original
 
-    function refreshGameLayer(box, loop, offset) { // Original logic
+    function refreshGameLayer(box, loop, offset) { // フォーク元と同じ実装
         if (!box?.children || blockSize <= 0) return;
         let i = Math.floor(Math.random() * 1000) % 4 + (loop ? 0 : 4);
         for (let j = 0; j < box.children.length; j++) {
@@ -538,6 +528,16 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
         const gameTimeVal = cookie('gameTime');
         if (gameTimeVal) { const gt = parseInt(gameTimeVal); if (!isNaN(gt) && gt > 0) { $('#gameTime').val(gt); _gameSettingNum = gt; } }
+    }
+
+    // ランキング機能 - フォーク元から復元
+    w.goRank = function() {
+        let name = $("#username").val();
+        let link = './rank.php';
+        if (!isnull(name)) {
+            link += "?name=" + name;
+        }
+        window.location.href = link;
     }
 
     w.show_btn = function() { /* Original */ $('#btn_group').css('display', 'flex'); $('#desc').css('display', 'block'); $('#setting').css('display', 'none'); }
