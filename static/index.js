@@ -309,11 +309,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function gameOver() { // fork元に合わせて実装
         _gameOver = true; 
-        if(_gameTime) clearInterval(_gameTime);
+        clearInterval(_gameTime);
         let cps = getCPS(); 
         updatePanel();
         setTimeout(function () {
-            if (GameLayerBG) GameLayerBG.className = ''; // fork元に合わせてclassNameで操作
+            GameLayerBG.className = ''; // fork元に合わせてclassNameで操作
             showGameScoreLayer(cps);
             foucusOnReplay();
         }, 1500);
@@ -333,17 +333,23 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             r.className = r.className.replace(_clearttClsReg, ''); r.notEmpty = false;
             if (i === j) {
                 _gameBBList.push({ cell: i % 4, id: r.id });
-                r.className += ' t' + (Math.floor(Math.random() * 5) + 1); r.notEmpty = true;
-                i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 4);
+                r.className += ' t' + (Math.floor(Math.random() * 1000) % 5 + 1); r.notEmpty = true;
+                i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 1000) % 4;
             }
         }
         if (loop) {
-            box.style[transitionDuration] = '0ms'; box.style.display = 'none';
-            box.y = -blockSize * (Math.floor(box.children.length / 4) + (offset || 0)); // `* loop` was likely redundant
-            box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
-            setTimeout(function () { box.style.display = 'block'; }, 50); // Simplified from nested setTimeout
+            box.style.webkitTransitionDuration = '0ms';
+            box.style.display = 'none';
+            box.y = -blockSize * (Math.floor(box.children.length / 4) + (offset || 0)) * loop;
+            setTimeout(function () {
+                box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
+                setTimeout(function () {
+                    box.style.display = 'block';
+                }, 100);
+            }, 200);
         } else {
-            box.y = 0; box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
+            box.y = 0;
+            box.style[transform] = 'translate3D(0,' + box.y + 'px,0)';
         }
         box.style[transitionDuration] = '150ms';
     }
@@ -420,15 +426,17 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let html = '<div id="GameLayerBG">';
         for (let i = 1; i <= 2; i++) {
             let id = 'GameLayer' + i;
-            html += `<div id="${id}" class="GameLayer">`;
+            html += '<div id="' + id + '" class="GameLayer">';
             for (let j = 0; j < 10; j++) {
                 for (let k = 0; k < 4; k++) {
-                    html += `<div id="${id}-${k + j * 4}" num="${k + j * 4}" class="block${k ? ' bl' : ''}"></div>`;
+                    html += '<div id="' + id + '-' + (k + j * 4) + '" num="' + (k + j * 4) + '" class="block' + (k ? ' bl' : '') +
+                        '"></div>';
                 }
             }
             html += '</div>';
         }
-        html += '</div><div id="GameTimeLayer" class="text-center"></div>';
+        html += '</div>';
+        html += '<div id="GameTimeLayer" class="text-center"></div>';
         return html;
     }
 
@@ -463,7 +471,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         gameScoreLayer.css('color', (mode !== MODE_NORMAL || legalDeviationTime()) ? '' : 'red');
         $('#cps').text(cps.toFixed(2));
         $('#score').text(scoreToString(_gameScore));
-        $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : 'flex');
+        $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : '');
         $('#best').text(scoreToString(best));
         gameScoreLayer.css('display', 'block');
     }
@@ -556,12 +564,33 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         gameTapEvent(fakeEvent);
     }
 
-    const clickBeforeStyle = $('<style id="clickBeforeStyleInjectedByJS"></style>').appendTo('head'); // Original
-    const clickAfterStyle = $('<style id="clickAfterStyleInjectedByJS"></style>').appendTo('head');  // Original
+    const clickBeforeStyle = $('<style></style>');
+    const clickAfterStyle = $('<style></style>');
+    clickBeforeStyle.appendTo($(document.head));
+    clickAfterStyle.appendTo($(document.head));
+
     function saveImage(dom, callback) { /* Original */ if (dom.files && dom.files[0]) { let r = new FileReader(); r.onload = function() { callback(this.result); }; r.readAsDataURL(dom.files[0]); } }
-    w.getClickBeforeImage = function() { /* Original */ $('#click-before-image').trigger('click'); }
-    w.saveClickBeforeImage = function() { /* Original (with !important styles) */ const i = document.getElementById('click-before-image'); saveImage(i, r => { clickBeforeStyle.html(`.t1,.t2,.t3,.t4,.t5{background-size:contain!important;background-image:url(${r})!important;background-repeat:no-repeat!important;background-position:center!important;}`); }); }
-    w.getClickAfterImage = function() { /* Original */ $('#click-after-image').trigger('click'); }
-    w.saveClickAfterImage = function() { /* Original (with !important styles) */ const i = document.getElementById('click-after-image'); saveImage(i, r => { clickAfterStyle.html(`.tt1,.tt2,.tt3,.tt4,.tt5{background-size:contain!important;background-image:url(${r})!important;background-repeat:no-repeat!important;background-position:center!important;}`); }); }
+    w.getClickBeforeImage = function() { /* Original */ $('#click-before-image').click(); }
+    w.saveClickBeforeImage = function() {
+        const i = document.getElementById('click-before-image');
+        saveImage(i, r => {
+            clickBeforeStyle.html(`
+                .t1, .t2, .t3, .t4, .t5 {
+                   background-size: auto 100%;
+                   background-image: url(${r});
+            }`);
+        });
+    }
+    w.getClickAfterImage = function() { /* Original */ $('#click-after-image').click(); }
+    w.saveClickAfterImage = function() {
+        const i = document.getElementById('click-after-image');
+        saveImage(i, r => {
+            clickAfterStyle.html(`
+                .tt1, .tt2, .tt3, .tt4, .tt5 {
+                  background-size: auto 86%;
+                  background-image: url(${r});
+            }`);
+        });
+    }
 
 })(window);
