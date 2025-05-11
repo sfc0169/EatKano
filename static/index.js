@@ -13,69 +13,43 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const messageVal = ($("#message").val() || '').trim();
 
         if (!usernameVal || _gameSettingNum !== 20) {
+            console.log('Score not submitted: empty username or non-standard game mode');
             return; // Do not submit if username is empty or if not in standard game mode
         }
 
         const scoreToSubmit = _gameScore;
         const userId = getUserId(); // Get unique user ID from cookie
+        console.log('Submitting score:', scoreToSubmit, 'User ID:', userId);
 
         try {
-            // Check if user already has a record
-            const { data: existingData, error: selectError } = await supaClient
+            // 常に新規レコードを挿入（すべてのスコアを保存）
+            const { error: insertError } = await supaClient
                 .from('leaderboard')
-                .select('id, score')
-                .eq('user_id', userId)
-                .limit(1);
-
-            if (selectError) {
-                console.error('Error checking existing score:', selectError);
-                return;
-            }
-
-            if (existingData && existingData.length > 0) {
-                // User exists - update only if new score is higher
-                const existingScore = existingData[0].score;
-                
-                if (scoreToSubmit > existingScore) {
-                    const { error: updateError } = await supaClient
-                        .from('leaderboard')
-                        .update({ 
-                            name: usernameVal, 
-                            score: scoreToSubmit, 
-                            comment: messageVal,
-                            updated_at: new Date()
-                        })
-                        .eq('id', existingData[0].id);
-                    
-                    if (updateError) {
-                        console.error('Supabase score update error:', updateError);
-                    }
-                }
+                .insert([{ 
+                    name: usernameVal, 
+                    score: scoreToSubmit, 
+                    comment: messageVal,
+                    user_id: userId
+                }]);
+            
+            if (insertError) {
+                console.error('Supabase score submission error:', insertError);
             } else {
-                // New user - insert new record
-                const { error: insertError } = await supaClient
-                    .from('leaderboard')
-                    .insert([{ 
-                        name: usernameVal, 
-                        score: scoreToSubmit, 
-                        comment: messageVal,
-                        user_id: userId
-                    }]);
-                
-                if (insertError) {
-                    console.error('Supabase score submission error:', insertError);
-                }
+                console.log('Score saved successfully!');
             }
         } catch (err) {
             console.error('Error submitting score:', err);
         }
     }
 
-    // Get or create user ID
+    // Get or create user ID with improved debugging
     function getUserId() {
         let userId = cookie('user_id');
+        console.log('Reading user_id from cookie:', userId);
+        
         if (!userId) {
             userId = generateUUID();
+            console.log('Generated new user_id:', userId);
             cookie('user_id', userId, 365); // Store for 1 year
         }
         return userId;
