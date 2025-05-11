@@ -110,9 +110,6 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         // ゲーム要素を中央揃えするために追加したCSS
         '#gameBody {margin:0 auto; max-width:100%; position:relative;} ' +
         '#GameLayerBG {margin:0 auto; position:relative;} ' +
-        // 間違ったタイルの赤点滅アニメーション用CSS
-        '.bad {background-color: red !important; animation: badFlash 0.5s !important;} ' +
-        '@keyframes badFlash {0% {opacity: 1;} 50% {opacity: 0.5;} 100% {opacity: 1;}} ' +
         (isDesktop ? '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position: absolute;}' :
             '#welcome,#GameTimeLayer,#GameLayerBG,#GameScoreLayer.SHADE{position:fixed;}@media screen and (orientation:landscape) {#landscape {display: box; display: -webkit-box; display: -moz-box; display: -ms-flexbox;}}') +
         '</style>');
@@ -361,38 +358,51 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // fork元に合わせて実装
-        if (_gameOver) return false;
+    function gameTapEvent(e) { // fork元に完全に合わせた実装
+        if (_gameOver) {
+            return false;
+        }
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
         let eventX = (e.clientX || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientX : 0)) - (body ? body.offsetLeft : 0);
+        
         if (_gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return false;
         let p = _gameBBList[_gameBBListIndex];
-        if ((touchArea[1] === undefined || blockSize <= 0) && body && body.offsetWidth > 0) countBlockSize();
-        if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) return false;
+        
+        if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) {
+            return false;
+        }
 
-        // 元の判定ロジックを忠実に再現
-        if ((p.id === tar.id && tar.notEmpty) || // 黒タイル直接タップ
-            (p.cell === 0 && eventX < blockSize) ||
-            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize) ||
-            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize) ||
-            (p.cell === 3 && eventX > 3 * blockSize)
-        ) {
-            if (!_gameStart) gameStart();
-            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("tap");
+        if ((p.id === tar.id && tar.notEmpty) || 
+            (p.cell === 0 && eventX < blockSize) || 
+            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize) || 
+            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize) || 
+            (p.cell === 3 && eventX > 3 * blockSize)) {
+            
+            if (!_gameStart) {
+                gameStart();
+            }
+            
+            if (soundMode === 'on' && createjs?.Sound) {
+                createjs.Sound.play("tap");
+            }
             
             tar = document.getElementById(p.id);
-            if (tar) { // 要素が存在することを確認
+            if (tar) {
                 tar.className = tar.className.replace(_ttreg, ' tt$1');
                 tar.notEmpty = false;
             }
-
+            
             _gameBBListIndex++;
             _gameScore++;
+            
             updatePanel();
             gameLayerMoveNextRow();
-        } else if (_gameStart && !tar.notEmpty) { // 白いタイルをタップ - fork元に合わせる
-            if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
+        } else if (_gameStart && !tar.notEmpty) {
+            if (soundMode === 'on' && createjs?.Sound) {
+                createjs.Sound.play("err");
+            }
+            
             tar.classList.add('bad');
             
             if (mode === MODE_PRACTICE) {
@@ -400,7 +410,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     tar.classList.remove('bad');
                 }, 500);
             } else {
-                gameOver(); // fork元に合わせて、遅延なしで直接gameOver()を呼び出す
+                gameOver();
             }
         }
         return false;
