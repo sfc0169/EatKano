@@ -1,47 +1,35 @@
-// IMPORTANT: Make sure to include the Supabase SDK in your HTML file before this script:
-// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 const MODE_NORMAL = 1, MODE_ENDLESS = 2, MODE_PRACTICE = 3;
 
 // ─── Supabase Client Initialization ───
 const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co';
-// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-// IMPORTANT: REPLACE WITH YOUR ACTUAL SUPABASE ANONYMOUS KEY
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY'; // 提供されたキーを使用
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
 const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ─── End of Supabase Client Initialization ───
 
 (function(w) {
-
     // ─── Supabase Submit Score Function (Replaces old SubmitResults and encrypt) ───
     async function SubmitResultsToSupabase() {
-        const usernameVal = ($("#username").val() || '').trim(); // Get value from HTML input
-        const messageVal = ($("#message").val() || '').trim();   // Get value from HTML input
+        const usernameVal = ($("#username").val() || '').trim();
+        const messageVal = ($("#message").val() || '').trim();
 
-        if (!usernameVal) {
-            // console.log("Username not entered in settings. Score will not be submitted to Supabase.");
-            // alert("ユーザー名が設定画面で入力されていません。スコアはランキングに登録されません。"); // Optional: Notify user
-            return; // Do not submit if username is empty
+        if (!usernameVal || _gameSettingNum !== 20) {
+            return; // Do not submit if username is empty or if not in standard game mode
         }
 
-        const scoreToSubmit = _gameScore; // Use the current game score
+        const scoreToSubmit = _gameScore;
 
-        // console.log(`Attempting to submit to Supabase: Name=${usernameVal}, Score=${scoreToSubmit}, Comment=${messageVal}`);
+        try {
+            const { data, error } = await supaClient
+                .from('leaderboard')
+                .insert([
+                    { name: usernameVal, score: scoreToSubmit, comment: messageVal }
+                ]);
 
-        const { data, error } = await supaClient
-            .from('leaderboard') // Ensure this is your table name
-            .insert([
-                { name: usernameVal, score: scoreToSubmit, comment: messageVal }
-                // created_at is expected to be set by DB (DEFAULT now())
-            ]);
-
-        if (error) {
-            console.error('Supabase score submission error:', error);
-            alert('スコアの保存に失敗しました。エラー: ' + error.message);
-        } else {
-            // console.log('Supabase score submission successful:', data);
-            // alert('スコアがランキングに保存されました！'); // Optional: Notify user of success
+            if (error) {
+                console.error('Supabase score submission error:', error);
+            }
+        } catch (err) {
+            console.error('Error submitting score:', err);
         }
     }
     // ─── End of Supabase Submit Score Function ───
@@ -593,13 +581,11 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return str === '' || str === undefined || str == null;
     }
 
+    // ランキング機能 - フォーク元から復元
     w.goRank = function() {
         let name = $("#username").val();
-        let link = './rank.php';
-        if (!isnull(name)) {
-            link += "?name=" + name;
-        }
-        window.location.href = link;
+        // Changed to connect to leaderboard.html instead of rank.php
+        window.location.href = 'leaderboard.html' + (isnull(name) ? '' : '?name=' + encodeURIComponent(name));
     }
 
     function click(index) {
