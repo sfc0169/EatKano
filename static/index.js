@@ -287,7 +287,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (mode === MODE_NORMAL && _gameTimeNum <= 0) {
             if (GameTimeLayer && I18N) GameTimeLayer.innerHTML = (I18N['time-up'] || 'Time Up') + '!';
             gameOver();
-            if (GameLayerBG) GameLayerBG.classList.add('flash');
+            if (GameLayerBG) GameLayerBG.className += ' flash'; // fork元に合わせてclassNameで操作
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("end");
         }
         updatePanel();
@@ -305,18 +305,20 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } else { GameTimeLayer.innerHTML = `SCORE:${_gameScore}`; }
     }
 
-    function focusOnReplay(){ // Corrected typo
+    function foucusOnReplay(){ // fork元に合わせてスペルも同じにする
         const replayBtnEl = document.getElementById('replay');
         if (replayBtnEl) replayBtnEl.focus();
     }
 
-    function gameOver() { // Original, with className fix
-        _gameOver = true; if(_gameTime) clearInterval(_gameTime);
-        let cps = getCPS(); updatePanel();
+    function gameOver() { // fork元に合わせて実装
+        _gameOver = true; 
+        if(_gameTime) clearInterval(_gameTime);
+        let cps = getCPS(); 
+        updatePanel();
         setTimeout(function () {
-            if (GameLayerBG) GameLayerBG.classList.remove('flash'); // Use classList
+            if (GameLayerBG) GameLayerBG.className = ''; // fork元に合わせてclassNameで操作
             showGameScoreLayer(cps);
-            focusOnReplay();
+            foucusOnReplay();
         }, 1500);
     }
 
@@ -359,7 +361,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
     }
 
-    function gameTapEvent(e) { // 修正: 間違ったタイルをタップしたときの処理を変更
+    function gameTapEvent(e) { // fork元に合わせて実装
         if (_gameOver) return false;
         let tar = e.target;
         let eventY = e.clientY || (e.targetTouches && e.targetTouches[0] ? e.targetTouches[0].clientY : 0);
@@ -370,38 +372,35 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (touchArea[1] !== undefined && (eventY > touchArea[0] || eventY < touchArea[1])) return false;
 
         // 元の判定ロジックを忠実に再現
-        const correctBlackTileElement = document.getElementById(p.id); // 常に正しい黒タイルを参照
         if ((p.id === tar.id && tar.notEmpty) || // 黒タイル直接タップ
-            (p.cell === 0 && eventX < blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
-            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
-            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty) ||
-            (p.cell === 3 && eventX > 3 * blockSize && correctBlackTileElement && correctBlackTileElement.notEmpty)
+            (p.cell === 0 && eventX < blockSize) ||
+            (p.cell === 1 && eventX > blockSize && eventX < 2 * blockSize) ||
+            (p.cell === 2 && eventX > 2 * blockSize && eventX < 3 * blockSize) ||
+            (p.cell === 3 && eventX > 3 * blockSize)
         ) {
             if (!_gameStart) gameStart();
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("tap");
             
-            // target は p.id の要素に強制 (列タップの場合も正しいタイルに作用させるため)
-            const actualTarget = document.getElementById(p.id);
-            if (actualTarget) { // 要素が存在することを確認
-                actualTarget.className = actualTarget.className.replace(_ttreg, ' tt$1');
-                actualTarget.notEmpty = false;
+            tar = document.getElementById(p.id);
+            if (tar) { // 要素が存在することを確認
+                tar.className = tar.className.replace(_ttreg, ' tt$1');
+                tar.notEmpty = false;
             }
 
             _gameBBListIndex++;
             _gameScore++;
             updatePanel();
             gameLayerMoveNextRow();
-        } else if (_gameStart && tar && tar.classList && tar.classList.contains('block') && !tar.notEmpty) { // 白いタイルをタップ
+        } else if (_gameStart && !tar.notEmpty) { // 白いタイルをタップ - fork元に合わせる
             if (soundMode === 'on' && createjs?.Sound) createjs.Sound.play("err");
             tar.classList.add('bad');
             
             if (mode === MODE_PRACTICE) {
-                setTimeout(() => { tar.classList.remove('bad'); }, 500);
+                setTimeout(() => {
+                    tar.classList.remove('bad');
+                }, 500);
             } else {
-                // 修正: 赤く点滅するのを見せるため、遅延させてからゲームオーバーを呼び出す
-                setTimeout(() => { 
-                    gameOver(); 
-                }, 500); // 0.5秒後にゲームオーバー処理
+                gameOver(); // fork元に合わせて、遅延なしで直接gameOver()を呼び出す
             }
         }
         return false;
