@@ -60,8 +60,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             dataType: 'json',
             method: 'GET',
             async: false, // Synchronous: Blocks execution until complete.
-            success: function(data) { i18nData = data; }, // Assign to local i18nData
-            error: function() {
+            success: data => i18nData = data, // Assign to local i18nData
+            error: () => {
                 // alert('找不到语言文件: ' + lang); // Original alert
                 console.warn('Language file not found: ' + lang + '.json. Falling back to English.');
                 $.ajax({
@@ -69,8 +69,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     dataType: 'json',
                     method: 'GET',
                     async: false,
-                    success: function(data) { i18nData = data; },
-                    error: function() {
+                    success: data => i18nData = data,
+                    error: () => {
                         console.error('English language file also not found.');
                         i18nData = {}; // Assign empty object to prevent errors
                     }
@@ -119,7 +119,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         document.write('<div id="gameBody">'); // オリジナルに合わせて開始タグだけを書き込む
         document.onkeydown = function (e) {
             let key = e.key.toLowerCase();
-            if (Object.keys(map).indexOf(key) !== -1) {
+            if (map.hasOwnProperty(key)) { // More direct check
                 click(map[key]);
             }
         }
@@ -139,7 +139,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         body = document.getElementById('gameBody') || document.body;
         body.style.height = window.innerHeight + 'px';
 
-        transform = typeof (body.style.webkitTransform) != 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !=
+        transform = typeof (body.style.webkitTransform) !== 'undefined' ? 'webkitTransform' : (typeof (body.style.msTransform) !==
         'undefined' ? 'msTransform' : 'transform');
         transitionDuration = transform.replace(/ransform/g, 'ransitionDuration');
 
@@ -167,31 +167,28 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     }
 
     function getMode() { // Original
-        return cookie('gameMode') ? parseInt(cookie('gameMode')) : MODE_NORMAL;
+        const modeCookie = cookie('gameMode');
+        return modeCookie ? parseInt(modeCookie) : MODE_NORMAL;
     }
 
     function getSoundMode() { // Original
-        return cookie('soundMode') ? cookie('soundMode') : 'on';
+        return cookie('soundMode') || 'on';
     }
 
-    w.changeSoundMode = function() { // Original
-        if (soundMode === 'on') {
-            soundMode = 'off';
-            $('#sound').text(I18N['sound-off']);
-        } else {
-            soundMode = 'on';
-            $('#sound').text(I18N['sound-on']);
-        }
-        cookie('soundMode', soundMode);
+    w.changeSoundMode = function() { // Original, with I18N check
+        soundMode = (soundMode === 'on' ? 'off' : 'on');
+        if (I18N) $('#sound').text(I18N[soundMode === 'on' ? 'sound-on' : 'sound-off']);
+        cookie('soundMode', soundMode, 100);
     }
 
-    function modeToString(m) { // Original
+    function modeToString(m) { // Original, with I18N check
+        if(!I18N) return "Mode";
         return m === MODE_NORMAL ? I18N['normal'] : (m === MODE_ENDLESS ? I18N['endless'] : I18N['practice']);
     }
 
     w.changeMode = function(m) { // Original
         mode = m;
-        cookie('gameMode', m);
+        cookie('gameMode', m, 100);
         $('#mode').text(modeToString(m));
     }
 
@@ -203,10 +200,17 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     w.winOpen = function() { // Original
         window.open(location.href + '?r=' + Math.random(), 'nWin', 'height=500,width=320,toolbar=no,menubar=no,scrollbars=no');
         let opened = window.open('about:blank', '_self');
-        if (opened) {
-            opened.opener = null;
-            opened.close();
+        if(opened) { opened.opener = null; opened.close(); }
+    }
+
+    // ランキング機能を追加 - これが欠けていた
+    w.goRank = function() {
+        let name = $("#username").val();
+        let link = './rank.php'; // ランキングページパス
+        if (!isnull(name)) {
+            link += "?name=" + name;
         }
+        window.location.href = link;
     }
 
     let refreshSizeTime; // Original
@@ -217,31 +221,23 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (!body || body.offsetWidth === 0) return;
         countBlockSize();
         if (blockSize <= 0) return;
-        if (GameLayer.length < 2 || !GameLayer[0].children || !GameLayer[1].children) return;
+        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) return;
 
         for (let i = 0; i < GameLayer.length; i++) {
             let box = GameLayer[i];
             for (let j = 0; j < box.children.length; j++) {
-                let r = box.children[j],
-                    rstyle = r.style;
+                let r = box.children[j], rstyle = r.style;
                 rstyle.left = (j % 4) * blockSize + 'px';
                 rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
-                rstyle.width = blockSize + 'px';
-                rstyle.height = blockSize + 'px';
+                rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
             }
         }
         let f, a;
-        if (GameLayer[0].y > GameLayer[1].y) {
-            f = GameLayer[0];
-            a = GameLayer[1];
-        } else {
-            f = GameLayer[1];
-            a = GameLayer[0];
-        }
+        if (GameLayer[0].y > GameLayer[1].y) { f = GameLayer[0]; a = GameLayer[1]; }
+        else { f = GameLayer[1]; a = GameLayer[0]; }
         let y = ((_gameBBListIndex) % 10) * blockSize;
-        f.y = y;
-        f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
-        a.y = -blockSize * Math.floor(f.children.length / 4) + y;
+        f.y = y; f.style[transform] = 'translate3D(0,' + f.y + 'px,0)';
+        a.y = -blockSize * Math.floor(f.children.length / 4) + y; // オリジナルに合わせた計算式
         a.style[transform] = 'translate3D(0,' + a.y + 'px,0)';
     }
 
@@ -261,59 +257,40 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function gameInit() { // Original
         if (typeof createjs !== 'undefined' && createjs.Sound) {
-            createjs.Sound.registerSound({
-                src: "./static/music/err.mp3",
-                id: "err"
-            });
-            createjs.Sound.registerSound({
-                src: "./static/music/end.mp3",
-                id: "end"
-            });
-            createjs.Sound.registerSound({
-                src: "./static/music/tap.mp3",
-                id: "tap"
-            });
+            createjs.Sound.registerSound({ src: "./static/music/err.mp3", id: "err" });
+            createjs.Sound.registerSound({ src: "./static/music/end.mp3", id: "end" });
+            createjs.Sound.registerSound({ src: "./static/music/tap.mp3", id: "tap" });
         }
         gameRestart();
     }
 
     function gameRestart() { // Original, with checks
-        _gameBBList = [];
-        _gameBBListIndex = 0;
-        _gameScore = 0;
-        _gameOver = false;
-        _gameStart = false;
+        _gameBBList = []; _gameBBListIndex = 0; _gameScore = 0; _gameOver = false; _gameStart = false;
         _gameSettingNum = parseInt(cookie('gameTime')) || 20;
-        _gameTimeNum = _gameSettingNum;
-        _gameStartTime = 0;
-        _date1 = null;
-        deviationTime = 0;
+        _gameTimeNum = _gameSettingNum; _gameStartTime = 0; _date1 = null; deviationTime = 0;
+        if (GameLayer.length < 2 || !GameLayer[0]?.children || !GameLayer[1]?.children) { return; }
         countBlockSize();
-        refreshGameLayer(GameLayer[0]);
-        refreshGameLayer(GameLayer[1], 1);
+        if (blockSize > 0) {
+            refreshGameLayer(GameLayer[0]); refreshGameLayer(GameLayer[1], 1);
+        }
         updatePanel();
     }
 
     function gameStart() { // Original
-        _date1 = new Date();
-        _gameStartDatetime = _date1.getTime();
-        _gameStart = true;
-        _gameStartTime = 0;
-        if (_gameTime) clearInterval(_gameTime);
+        _date1 = new Date(); _gameStartDatetime = _date1.getTime(); _gameStart = true; _gameStartTime = 0;
+        if(_gameTime) clearInterval(_gameTime);
         _gameTime = setInterval(timer, 1000);
     }
 
     function getCPS() { // Original
-        let cps = _gameScore / ((new Date().getTime() - _gameStartDatetime) / 1000);
-        if (isNaN(cps) || cps === Infinity || _gameStartTime < 2) {
-            cps = 0;
-        }
-        return cps;
+        const elapsedTime = (new Date().getTime() - _gameStartDatetime) / 1000;
+        if (elapsedTime <= 0 || _gameScore === 0) return 0;
+        let cps = _gameScore / elapsedTime;
+        return isNaN(cps) || !isFinite(cps) || _gameStartTime < 2 ? 0 : cps;
     }
 
     function timer() { // Original, with checks
-        _gameTimeNum--;
-        _gameStartTime++;
+        _gameTimeNum--; _gameStartTime++;
         if (mode === MODE_NORMAL && _gameTimeNum <= 0) {
             if (GameTimeLayer && I18N) GameTimeLayer.innerHTML = (I18N['time-up'] || 'Time Up') + '!';
             gameOver();
@@ -332,13 +309,12 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             let cps = getCPS();
             let text = (cps === 0 && _gameScore === 0 ? (I18N['calculating'] || 'Calculating...') : cps.toFixed(2));
             GameTimeLayer.innerHTML = `CPS:${text}`;
-        } else {
-            GameTimeLayer.innerHTML = `SCORE:${_gameScore}`;
-        }
+        } else { GameTimeLayer.innerHTML = `SCORE:${_gameScore}`; }
     }
 
     function foucusOnReplay(){ // fork元に合わせてスペルも同じにする
-        $('#replay').focus();
+        const replayBtnEl = document.getElementById('replay');
+        if (replayBtnEl) replayBtnEl.focus();
     }
 
     function gameOver() { // fork元に合わせて実装
@@ -353,31 +329,22 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }, 1500);
     }
 
-    function createTimeText(n) { return 'TIME:' + Math.ceil(n); } // Original
+    function createTimeText(n) { return 'TIME:' + Math.max(0, Math.ceil(n)); } // Original
 
     let _ttreg = / t{1,2}(\d+)/, _clearttClsReg = / t{1,2}\d+| bad/; // Original
 
-    function refreshGameLayer(box, loop, offset) { // Fork元に完全に合わせる
+    function refreshGameLayer(box, loop, offset) { // Original logic
         if (!box?.children || blockSize <= 0) return;
         let i = Math.floor(Math.random() * 1000) % 4 + (loop ? 0 : 4);
         for (let j = 0; j < box.children.length; j++) {
-            let r = box.children[j],
-                rstyle = r.style;
-            rstyle.left = (j % 4) * blockSize + 'px';
-            rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
-            rstyle.width = blockSize + 'px';
-            rstyle.height = blockSize + 'px';
-            r.className = r.className.replace(_clearttClsReg, '');
+            let r = box.children[j], rstyle = r.style;
+            rstyle.left = (j % 4) * blockSize + 'px'; rstyle.bottom = Math.floor(j / 4) * blockSize + 'px';
+            rstyle.width = blockSize + 'px'; rstyle.height = blockSize + 'px';
+            r.className = r.className.replace(_clearttClsReg, ''); r.notEmpty = false;
             if (i === j) {
-                _gameBBList.push({
-                    cell: i % 4,
-                    id: r.id
-                });
-                r.className += ' t' + (Math.floor(Math.random() * 1000) % 5 + 1);
-                r.notEmpty = true;
+                _gameBBList.push({ cell: i % 4, id: r.id });
+                r.className += ' t' + (Math.floor(Math.random() * 1000) % 5 + 1); r.notEmpty = true;
                 i = (Math.floor(j / 4) + 1) * 4 + Math.floor(Math.random() * 1000) % 4;
-            } else {
-                r.notEmpty = false;
             }
         }
         if (loop) {
@@ -483,71 +450,49 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         return html;
     }
 
-    function closeWelcomeLayer() { /* Original */ 
-        welcomeLayerClosed = true;
-        $('#welcome').css('display', 'none');
-        updatePanel();
-    }
-
-    function showWelcomeLayer() { /* Original */
-        welcomeLayerClosed = false;
-        $('#mode').text(modeToString(mode));
-        $('#welcome').css('display', 'block');
-    }
-
-    function getBestScore(currentScore) {
-        // 修正: フォーク元では 'bast-score' だが、正しくは 'best-score'
+    function closeWelcomeLayer() { /* Original */ welcomeLayerClosed = true; $('#welcome').css('display', 'none'); updatePanel(); }
+    function showWelcomeLayer() { /* Original */ welcomeLayerClosed = false; $('#mode').text(modeToString(mode)); $('#welcome').css('display', 'block'); }
+    function getBestScore(currentScore) { /* Original (bast->best fix) */
         let cookieName = (mode === MODE_NORMAL ? 'best-score' : 'endless-best-score');
-        let best = cookie(cookieName) ? Math.max(parseFloat(cookie(cookieName)), currentScore) : currentScore;
-        cookie(cookieName, best.toFixed(2), 100);
+        let best = parseFloat(cookie(cookieName)) || 0;
+        if (currentScore > best) { best = currentScore; cookie(cookieName, best.toFixed(mode === MODE_ENDLESS ? 2 : 0), 100); }
         return best;
     }
-
-    function scoreToString(s) { /* Original */ 
-        return mode === MODE_ENDLESS ? parseFloat(s).toFixed(2) : String(Math.floor(s));
-    }
-
-    function legalDeviationTime() { /* Original */ 
-        return deviationTime < (_gameSettingNum + 3) * 1000;
-    }
+    function scoreToString(s) { /* Original */ return mode === MODE_ENDLESS ? parseFloat(s).toFixed(2) : String(Math.floor(s)); }
+    function legalDeviationTime() { /* Original */ return _date1 ? deviationTime < (_gameSettingNum + 3) * 1000 : true; }
 
     function showGameScoreLayer(cps) { // Original, with minor jQuery safety
-        let l = $('#GameScoreLayer');
-        let c = $(`#${_gameBBList[_gameBBListIndex - 1].id}`).attr('class').match(_ttreg)[1];
-        let score = (mode === MODE_ENDLESS ? cps : _gameScore);
-        let best = getBestScore(score);
-        l.attr('class', l.attr('class').replace(/bgc\d/, 'bgc' + c));
+        const gameScoreLayer = $('#GameScoreLayer');
+        if (_gameBBList.length > 0 && _gameBBListIndex > 0 && _gameBBList[_gameBBListIndex - 1]) {
+            const lastBlock = $(`#${_gameBBList[_gameBBListIndex - 1].id}`);
+            if (lastBlock.length) {
+                const classAttr = lastBlock.attr('class');
+                if (classAttr) {
+                    const cMatch = classAttr.match(_ttreg);
+                    if (cMatch && cMatch[1]) gameScoreLayer.attr('class', 'BBOX SHADE bgc' + cMatch[1]);
+                    else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+                } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+            } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+        } else gameScoreLayer.attr('class', 'BBOX SHADE bgc1');
+        
         $('#GameScoreLayer-text').html(shareText(cps)); // Calls Supabase submission
-        let normalCond = legalDeviationTime() || mode !== MODE_NORMAL;
-        l.css('color', normalCond ? '': 'red');
-
+        let scoreVal = (mode === MODE_ENDLESS ? cps : _gameScore);
+        let best = getBestScore(scoreVal);
+        gameScoreLayer.css('color', (mode !== MODE_NORMAL || legalDeviationTime()) ? '' : 'red');
         $('#cps').text(cps.toFixed(2));
-        $('#score').text(scoreToString(score));
+        $('#score').text(scoreToString(_gameScore));
         $('#GameScoreLayer-score').css('display', mode === MODE_ENDLESS ? 'none' : '');
         $('#best').text(scoreToString(best));
-
-        l.css('display', 'block');
+        gameScoreLayer.css('display', 'block');
     }
 
-    function hideGameScoreLayer() { /* Original */ 
-        $('#GameScoreLayer').css('display', 'none');
-    }
-
-    w.replayBtn = function() { /* Original */ 
-        gameRestart();
-        hideGameScoreLayer();
-    }
-
-    w.backBtn = function() { /* Original */ 
-        gameRestart();
-        hideGameScoreLayer();
-        showWelcomeLayer();
-    }
+    function hideGameScoreLayer() { /* Original */ $('#GameScoreLayer').css('display', 'none'); }
+    w.replayBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); }
+    w.backBtn = function() { /* Original */ gameRestart(); hideGameScoreLayer(); showWelcomeLayer(); }
 
     function shareText(cps) { // Modified for Supabase
         if (mode === MODE_NORMAL) {
-            let date2 = new Date(); 
-            if (!_date1) _date1 = date2;
+            let date2 = new Date(); if (!_date1) _date1 = date2;
             deviationTime = (date2.getTime() - _date1.getTime());
             if (!legalDeviationTime()) {
                 return (I18N ? I18N['time-over'] : 'Time over by: ') + ((deviationTime / 1000) - _gameSettingNum).toFixed(2) + 's';
@@ -555,103 +500,58 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             SubmitResultsToSupabase(); // ★★★ Supabase送信 ★★★
         }
         if (!I18N) return "Score: " + cps.toFixed(2);
-        if (cps <= 5) return I18N['text-level-1'] || 'Lvl 1'; 
-        if (cps <= 8) return I18N['text-level-2'] || 'Lvl 2';
-        if (cps <= 10) return I18N['text-level-3'] || 'Lvl 3'; 
-        if (cps <= 15) return I18N['text-level-4'] || 'Lvl 4';
+        if (cps <= 5) return I18N['text-level-1'] || 'Lvl 1'; if (cps <= 8) return I18N['text-level-2'] || 'Lvl 2';
+        if (cps <= 10) return I18N['text-level-3'] || 'Lvl 3'; if (cps <= 15) return I18N['text-level-4'] || 'Lvl 4';
         return I18N['text-level-5'] || 'Lvl 5';
     }
 
-    function toStr(obj) { /* Original */ 
-        if (typeof obj === 'object') {
-            return JSON.stringify(obj);
-        } else {
-            return obj;
-        }
-    }
-
-    function cookie(name, value, time) {
+    function toStr(obj) { /* Original */ if (typeof obj === 'object') { try {return JSON.stringify(obj);} catch(e){return String(obj);}} else { return String(obj); } }
+    function cookie(name, value, timeInDays) { /* Modified (no eval) */
         if (name) {
-            if (value) {
-                if (time) {
-                    let date = new Date();
-                    date.setTime(date.getTime() + 864e5 * time), time = date.toGMTString();
-                }
-                return document.cookie = name + "=" + escape(toStr(value)) + (time ? "; expires=" + time + (arguments[3] ?
-                    "; domain=" + arguments[3] + (arguments[4] ? "; path=" + arguments[4] + (arguments[5] ? "; secure" : "") : "") :
-                    "") : ""), !0;
+            if (value !== undefined) {
+                let expires = ""; if (timeInDays) { let date = new Date(); date.setTime(date.getTime() + (timeInDays * 24 * 60 * 60 * 1000)); expires = "; expires=" + date.toUTCString(); }
+                document.cookie = name + "=" + (escape(toStr(value)) || "") + expires + "; path=/"; return true;
+            } else {
+                let nameEQ = name + "="; let ca = document.cookie.split(';');
+                for (let i = 0; i < ca.length; i++) {
+                    let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                    if (c.indexOf(nameEQ) === 0) {
+                        let valStr = unescape(c.substring(nameEQ.length, c.length));
+                        try { if ((valStr.startsWith('{') && valStr.endsWith('}')) || (valStr.startsWith('[') && valStr.endsWith(']'))) return JSON.parse(valStr); if (!isNaN(parseFloat(valStr)) && isFinite(valStr)) return parseFloat(valStr); } catch (e) {}
+                        return valStr;
+                    }
+                } return null;
             }
-            return value = document.cookie.match("(?:^|;)\\s*" + name.replace(/([-.*+?^${}()|[\]\/\\])/g, "\\$1") + "=([^;]*)"),
-                value = value && "string" == typeof value[1] ? unescape(value[1]) : !1, (/^(\{|\[).+\}|\]$/.test(value) ||
-                /^[0-9]+$/g.test(value)) && eval("value=" + value), value;
         }
-        let data = {};
-        value = document.cookie.replace(/\s/g, "").split(";");
-        for (let i = 0; value.length > i; i++) name = value[i].split("="), name[1] && (data[name[0]] = unescape(name[1]));
-        return data;
+        let data = {}; let ca = document.cookie.split(';'); for (let i = 0; i < ca.length; i++) { let pair = ca[i].split('='); if(pair.length === 2) data[pair[0].trim()] = unescape(pair[1]); } return data;
     }
 
     document.write(createGameLayer()); // オリジナルに合わせて直接書き込み
 
     function initSetting() { /* Original */
-        $("#username").val(cookie("username") ? cookie("username") : "");
-        $("#message").val(cookie("message") ? cookie("message") : "");
-        if (cookie("title")) {
-            $('title').text(cookie('title'));
-            $('#title').val(cookie('title'));
+        $("#username").val(cookie("username") || ""); $("#message").val(cookie("message") || "");
+        const titleVal = cookie("title"); if (titleVal) { $('title').text(titleVal); $('#title').val(titleVal); }
+        const keyboardVal = cookie("keyboard");
+        if (keyboardVal) {
+            const kbStr = String(keyboardVal).toLowerCase(); $("#keyboard").val(kbStr);
+            if(kbStr.length === 4) { map = {}; map[kbStr.charAt(0)] = 1; map[kbStr.charAt(1)] = 2; map[kbStr.charAt(2)] = 3; map[kbStr.charAt(3)] = 4; }
         }
-        let keyboard = cookie('keyboard');
-        if (keyboard) {
-            keyboard = keyboard.toString().toLowerCase();
-            $("#keyboard").val(keyboard);
-            map = {}
-            map[keyboard.charAt(0)] = 1;
-            map[keyboard.charAt(1)] = 2;
-            map[keyboard.charAt(2)] = 3;
-            map[keyboard.charAt(3)] = 4;
-        }
-        if (cookie('gameTime')) {
-            $('#gameTime').val(cookie('gameTime'));
-            _gameSettingNum = parseInt(cookie('gameTime'));
-            gameRestart();
-        }
+        const gameTimeVal = cookie('gameTime');
+        if (gameTimeVal) { const gt = parseInt(gameTimeVal); if (!isNaN(gt) && gt > 0) { $('#gameTime').val(gt); _gameSettingNum = gt; } }
     }
 
-    w.show_btn = function() { /* Original */
-        $("#btn_group,#desc").css('display', 'block');
-        $('#setting').css('display', 'none');
-    }
-
+    w.show_btn = function() { /* Original */ $('#btn_group').css('display', 'flex'); $('#desc').css('display', 'block'); $('#setting').css('display', 'none'); }
     w.show_setting = function() { /* Original */
-        $('#btn_group,#desc').css('display', 'none');
-        $('#setting').css('display', 'block');
-        $('#sound').text(soundMode === 'on' ? I18N['sound-on'] : I18N['sound-off']);
+        $('#btn_group').css('display', 'none'); $('#desc').css('display', 'none'); $('#setting').css('display', 'block');
+        if (I18N) $('#sound').text(soundMode === 'on' ? (I18N['sound-on'] || 'Sound: ON') : (I18N['sound-off'] || 'Sound: OFF'));
     }
-
     w.save_cookie = function() { /* Original */
-        const settings = ['username', 'message', 'keyboard', 'title', 'gameTime'];
-        for (let s of settings) {
-            let value=$(`#${s}`).val();
-            if(value){
-                cookie(s, value.toString(), 100);
-            }
-        }
+        const s = ['username', 'message', 'keyboard', 'title', 'gameTime'];
+        for (let k of s) { let v = $(`#${k}`).val(); if (v !== null && v !== undefined) cookie(k, String(v).trim(), 100); }
+        const gtVal = $('#gameTime').val(); if(gtVal){ const ngt = parseInt(gtVal); if(!isNaN(ngt) && ngt > 0) _gameSettingNum = ngt; }
         initSetting();
     }
-
-    function isnull(val) { /* Original */ 
-        let str = val.replace(/(^\s*)|(\s*$)/g, '');
-        return str === '' || str === undefined || str == null;
-    }
-
-    w.goRank = function() { /* Original */
-        let name = $("#username").val();
-        let link = './rank.php';
-        if (!isnull(name)) {
-            link += "?name=" + name;
-        }
-        window.location.href = link;
-    }
+    function isnull(val) { /* Original */ if (val === null || val === undefined) return true; return String(val).replace(/(^\s*)|(\s*$)/g, '') === ''; }
 
     function click(index) { /* Original logic (with target block finding adjusted) */
         if (!welcomeLayerClosed || _gameOver || _gameBBList.length === 0 || _gameBBListIndex >= _gameBBList.length) return;
@@ -670,12 +570,7 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }
         }
         if (!targetEl) return;
-        let fakeEvent = {
-            clientX: ((index - 1) * blockSize + index * blockSize) / 2 + body.offsetLeft,
-            // 確実にタップエリア内にするため
-            clientY: (touchArea[0] + touchArea[1]) / 2,
-            target: targetEl,
-        };
+        let fakeEvent = { target: targetEl, clientX: (targetCol + 0.5) * blockSize + (body ? body.offsetLeft : 0), clientY: (touchArea[1] !== undefined ? (touchArea[0] + touchArea[1]) / 2 : window.innerHeight / 2) };
         gameTapEvent(fakeEvent);
     }
 
@@ -684,21 +579,9 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     clickBeforeStyle.appendTo($(document.head));
     clickAfterStyle.appendTo($(document.head));
 
-    function saveImage(dom, callback) { /* Original */ 
-        if (dom.files && dom.files[0]) {
-            let reader = new FileReader();
-            reader.onload = function() {
-                callback(this.result);
-            }
-            reader.readAsDataURL(dom.files[0]);
-        }
-    }
-
-    w.getClickBeforeImage = function() { /* Original */ 
-        $('#click-before-image').click();
-    }
-
-    w.saveClickBeforeImage = function() { /* Original */
+    function saveImage(dom, callback) { /* Original */ if (dom.files && dom.files[0]) { let r = new FileReader(); r.onload = function() { callback(this.result); }; r.readAsDataURL(dom.files[0]); } }
+    w.getClickBeforeImage = function() { /* Original */ $('#click-before-image').click(); }
+    w.saveClickBeforeImage = function() {
         const i = document.getElementById('click-before-image');
         saveImage(i, r => {
             clickBeforeStyle.html(`
@@ -708,12 +591,8 @@ const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }`);
         });
     }
-
-    w.getClickAfterImage = function() { /* Original */ 
-        $('#click-after-image').click();
-    }
-
-    w.saveClickAfterImage = function() { /* Original */
+    w.getClickAfterImage = function() { /* Original */ $('#click-after-image').click(); }
+    w.saveClickAfterImage = function() {
         const i = document.getElementById('click-after-image');
         saveImage(i, r => {
             clickAfterStyle.html(`
