@@ -1,152 +1,125 @@
 <!DOCTYPE html>
-<!-- lang属性は index.js で動的に設定されるため、ここでは削除またはコメントアウト -->
 <html>
 
 <head>
-    <title data-i18n="eat-kano">EatKano</title> <!-- 初期タイトル、JSで上書きされる -->
-    <meta itemprop="name" content="吃掉小鹿乃" /> <!-- 中国語圏向けか -->
+    <title data-i18n="eat-kano">EatKano</title>
+    <meta itemprop="name" content="吃掉小鹿乃" />
     <meta itemprop="description" content="新概念音游" />
     <meta charset="utf-8" />
     <meta name="viewport"
         content="initial-scale=1, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, width=device-width,target-densitydpi=device-dpi" />
-
-    <!-- CSS -->
     <link href="./static/index.css" rel="stylesheet" type="text/css">
-    <!-- Bootstrap CSS (CDN) -->
-    <link href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <!-- JavaScript Libraries -->
     <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
     <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery/3.6.0/jquery.min.js"></script>
-    <script
-        src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Supabase JS SDK (重要！) -->
+    <link href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Vercel Analytics (推奨される新しい方法) -->
+    
+    <!-- Vercel Analytics -->
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
     <!-- End Vercel Analytics -->
-
 </head>
 
-<body onLoad="init()" oncontextmenu="event.returnValue=false;">
-
-    <!-- Game Score Layer -->
-    <div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
-        <div class="p-3 mx-auto" style="margin-top: 20vh; max-width: 450px; background-color: rgba(40, 40, 60, 0.9); border-radius: 15px; color: white;">
-            <div id="GameScoreLayer-text" class="mb-3" style="font-size: 1.3em; font-weight: bold;"></div>
-            <div id="GameScoreLayer-CPS" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" style="font-weight: bold;">CPS:</div>
-                <div class="col-auto" id="cps" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div id="GameScoreLayer-score" class="mb-2 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="score" style="font-weight: bold;">SCORE:</div>
-                <div class="col-auto" id="score" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div id="GameScoreLayer-bast" class="mb-3 d-flex flex-row justify-content-center text-start align-items-center">
-                <div class="col-auto pe-2" data-i18n="best" style="font-weight: bold;">BEST:</div>
-                <div class="col-auto" id="best" style="font-weight: bold; min-width: 60px;"></div>
-            </div>
-            <div class="d-grid gap-2">
-                <button type="button" class="btn btn-primary btn-lg" id="replay" onclick="replayBtn()"
-                    data-i18n="again">AGAIN</button>
-                <button type="button" class="btn btn-info btn-lg" onclick="window.location.reload()"
-                    data-i18n="home">HOME</button>
-                <button type="button" class="btn btn-outline-light btn-lg"
-                    onclick="window.open('leaderboard.html', '_blank')" data-i18n="rank">REPO</button>
-            </div>
+<body onLoad="init()" oncontextmenu=self.event.returnValue=false>
+<div id="GameScoreLayer" class="BBOX SHADE bgc1" style="display:none;">
+    <div style="padding:5%;margin-top: 200px;background-color: rgba(125, 181, 216, 0.3);">
+        <div id="GameScoreLayer-text"></div>
+        <div id="GameScoreLayer-CPS" class="mb-2 d-flex flex-row justify-content-center text-start">
+            <div class="col-3">CPS</div>
+            <div class="col-2" id="cps"></div>
         </div>
+        <div id="GameScoreLayer-score" class="mb-2 d-flex flex-row justify-content-center text-start">
+            <div class="col-3" data-i18n="score"></div>
+            <div class="col-2" id="score"></div>
+        </div>
+        <div id="GameScoreLayer-bast" class="mb-2 d-flex flex-row justify-content-center text-start">
+            <div class="col-3" data-i18n="best"></div>
+            <div class="col-2" id="best"></div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-lg" id="replay" onclick="replayBtn()" data-i18n="again">AGAIN-I18N</button>
+        <button type="button" class="btn btn-secondary btn-lg" onclick="window.location.reload()" data-i18n="home">HOME-I18N</button>
+        <button type="button" class="btn btn-secondary btn-lg" onclick="goRank()" data-i18n="rank">REPO-I18N</button>
     </div>
-
-
-    <!-- Welcome Layer -->
-    <div id="welcome" class="SHADE BOX-M">
-        <div class="welcome-bg FILL"></div>
-        <div class="FILL d-flex align-items-center justify-content-center" style="z-index:5; padding:15px;">
-            <div class="container text-center" style="max-width: 500px;">
-                <div class="mb-5">
-                    <div style="font-size:3em; color:#FEF002; font-weight: bold; text-shadow: 2px 2px 4px #000000;" data-i18n="game-title">
-                        EAT KANO</div><br />
-                    <div id="desc" style="font-size:1.8em; color:#fff; line-height:1.5em; text-shadow: 1px 1px 2px #000000;">
-                        <span data-i18n="game-intro1">Eat Kano!</span><br />
-                        <span data-i18n="game-intro2">A new concept music game!</span><br />
-                    </div>
+</div>
+</div>
+<div id="welcome" class="SHADE BOX-M">
+    <div class="welcome-bg FILL"></div>
+    <div class="FILL BOX-M" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:5;">
+        <div class="container">
+            <div class="container mb-5">
+                <div style="font-size:2.6em; color:#FEF002;" data-i18n="game-title">GAME-TITLE-I18N</div><br />
+                <div id="desc" style="display: block;font-size:2.2em; color:#fff; line-height:1.5em;">
+                    <span data-i18n="game-intro1">GAME-INTRO1-I18N</span><br />
+                    <span data-i18n="game-intro2">GAME-INTRO2-I18N</span><br />
                 </div>
-
-                <div id="btn_group" class="d-grid gap-3 mx-auto" style="max-width: 280px;">
-                    <a class="btn btn-primary btn-lg" onclick="readyBtn()" data-i18n="start">START</a>
-                    <div class="dropdown">
-                        <a class="w-100 btn btn-secondary btn-lg dropdown-toggle" href="javascript:void(0);" role="button"
-                            id="mode" data-bs-toggle="dropdown" aria-expanded="false"
-                            data-i18n="normal">NORMAL</a>
-                        <ul class="dropdown-menu w-100" aria-labelledby="mode">
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_NORMAL)"
-                                    data-i18n="normal">NORMAL</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_ENDLESS)"
-                                    data-i18n="endless">ENDLESS</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0);" onclick="changeMode(MODE_PRACTICE)"
-                                    data-i18n="practice">PRACTICE</a></li>
+            </div>
+            <div id="btn_group" class="container text-nowrap">
+                <div class="d-flex justify-content-center flex-column flex-fill">
+                    <a class="btn btn-primary btn-lg mb-3" onclick="readyBtn()" data-i18n="start">START-I18N</a>
+                    <div class="dropdown mb-3">
+                        <a class="w-100 btn btn-secondary btn-lg" href="javascript: void(0);" role="button" id="mode" data-bs-toggle="dropdown" aria-expanded="false" data-i18n="normal">NORMAL-I18N</a>
+                        <ul class="dropdown-menu" aria-labelledby="mode">
+                            <li><a class="dropdown-item" onclick="changeMode(MODE_NORMAL)" data-i18n="normal">NORMAL-I18N</a></li>
+                            <li><a class="dropdown-item" onclick="changeMode(MODE_ENDLESS)" data-i18n="endless">ENDLESS-I18N</a></li>
+                            <li><a class="dropdown-item" onclick="changeMode(MODE_PRACTICE)" data-i18n="practice">PRACTICE-I18N</a></li>
                         </ul>
                     </div>
-                    <a href="./leaderboard.html" class="btn btn-success btn-lg" data-i18n="rank">RANKING</a>
-                    <a class="btn btn-info btn-lg" onclick="show_setting()" data-i18n="settings">SETTINGS</a>
+                    <a class="btn btn-secondary btn-lg mb-3" onclick="goRank()" data-i18n="rank">RANKING-I18N</a>
+                    <a class="btn btn-secondary btn-lg" onclick="show_setting()" data-i18n="settings">SETTINGS-I18N</a>
                 </div>
-
-                <div id="setting" class="mt-4 p-3" style="display: none; background-color: rgba(0,0,0,0.75); border-radius: 10px; color:white; max-width: 450px; margin-left:auto; margin-right:auto;">
-                    <div class="btn-group w-100 mb-3" role="group" aria-label="Image and Sound Settings">
-                        <a data-i18n="img-before" type="button" class="btn btn-outline-light flex-fill me-1"
-                            onclick="getClickBeforeImage()">IMG-BEFORE</a>
-                        <input type="file" id="click-before-image" accept="image/*" class="d-none"
-                            onchange="saveClickBeforeImage()">
-                        <a data-i18n="img-after" type="button" class="btn btn-outline-light flex-fill"
-                            onclick="getClickAfterImage()">IMG-AFTER</a>
-                        <input type="file" id="click-after-image" accept="image/*" class="d-none"
-                            onchange="saveClickAfterImage()">
-                    </div>
-                     <div class="text-center mb-3">
-                        <a id="sound" type="button" class="btn btn-outline-light w-75" onclick="changeSoundMode()">SOUND ON/OFF</a>
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="name">Name</span>
-                        <input data-placeholder-i18n="player-name" type="text" id="username" class="form-control" placeholder="Player">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="comment">Comment</span>
-                        <input data-placeholder-i18n="comment-text" type="text" id="message" class="form-control" placeholder="Message">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span class="input-group-text col-md-3 col-4" data-i18n="title">TITLE</span>
-                        <input data-placeholder-i18n="eat-kano" type="text" id="title" class="form-control"
-                            placeholder="EAT KANO">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span data-i18n="key" class="input-group-text col-md-3 col-4">KEY</span>
-                        <input data-placeholder-i18n="default-dfjk" type="text" id="keyboard" class="form-control"
-                            maxlength=4 placeholder="DFJK">
-                    </div>
-                    <div class="input-group mb-3">
-                        <span data-i18n="time" class="input-group-text col-md-3 col-4">TIME</span>
-                        <input data-placeholder-i18n="default-20s" type="number" id="gameTime" class="form-control"
-                            maxlength=4 placeholder="20">
-                    </div>
-                    <div class="d-grid">
-                        <button type="button" class="btn btn-primary btn-lg" onclick="show_btn();save_cookie();"
-                            data-i18n="ok">OK</button>
-                    </div>
+            </div>
+            <div id="setting" class="container" style="display: none;">
+                <div class="container mb-3 btn-group">
+                    <a data-i18n="img-before" type="button" class="btn text-nowrap btn-secondary me-1" onclick="getClickBeforeImage()" style="left: 0">IMG-BEFORE-I18N</a>
+                    <input type="file" id="click-before-image" accept="image/*" class="d-none" onchange="saveClickBeforeImage()">
+                    <a data-i18n="img-after" type="button" class="btn text-nowrap btn-secondary me-1" onclick="getClickAfterImage()" style="right: 0">IMG-AFTER-I18N</a>
+                    <input type="file" id="click-after-image" accept="image/*" style="display: none;" onchange="saveClickAfterImage()">
+                    <a id="sound" type="button" class="btn text-nowrap btn-secondary" onclick="changeSoundMode()"></a>
                 </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend col-2">
+                        <span class="input-group-text" data-i18n="title">TITLE-I18N</span>
+                    </div>
+                    <input data-placeholder-i18n="eat-kano" type="text" id="title" class="form-control" placeholder="EAT-KANO-I18N">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend col-2">
+                        <span data-i18n="key" class="input-group-text">KEY-I18N</span>
+                    </div>
+                    <input data-placeholder-i18n="default-dfjk" type="text" id="keyboard" class="form-control" maxlength=4 placeholder="DFJK-I18N">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend col-2">
+                        <span data-i18n="time" class="input-group-text">TIME-I18N</span>
+                    </div>
+                    <input data-placeholder-i18n="default-20s" type="text" id="gameTime" class="form-control" maxlength=4 placeholder="default-20s">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend col-2">
+                        <span data-i18n="name" class="input-group-text">NAME-I18N</span>
+                    </div>
+                    <input data-placeholder-i18n="player-name" type="text" id="username" class="form-control" placeholder="Player">
+                </div>
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend col-2">
+                        <span data-i18n="comment" class="input-group-text">COMMENT-I18N</span>
+                    </div>
+                    <input data-placeholder-i18n="comment-text" type="text" id="message" class="form-control" placeholder="Message">
+                </div>
+                <button type="button" class="btn btn-secondary btn-lg" onclick="show_btn();save_cookie();" data-i18n="ok">OK-I18N</button>
             </div>
         </div>
     </div>
-
-    <script src="./static/index.js"></script>
-
-    <!-- Vercel Analytics をここに追加 -->
-    import { inject } from "@vercel/analytics"
+</div>
+<script src="./static/index.js"></script>
+<!-- Vercel Analytics -->
+<script>
+    import { inject } from "@vercel/analytics";
+    inject();
+</script>
 </body>
 
 </html>
