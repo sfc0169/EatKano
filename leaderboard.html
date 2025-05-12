@@ -78,7 +78,7 @@
     // ─── Supabase Client Initialization ───
     const SUPABASE_URL = 'https://pazuftgivpsfqekecfvt.supabase.co/';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhenVmdGdpdnBzZnFla2VjZnZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3NzUwNTUsImV4cCI6MjA2MjM1MTA1NX0.m_N4lzEf6rbSqN18oDre4MCx8MteakGfyvv9vs3p5EY';
-    const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // ★★★ supabaseJs を supabase に変更し、変数名を supaClient に変更 ★★★
+    const supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     // ─── End of Supabase Client Initialization ───
 
     let I18N = {};
@@ -92,12 +92,12 @@
     const leaderboardElement = document.getElementById('leaderboard');
     const paginationElement = document.getElementById('pagination');
     const rankingTitleElement = document.getElementById('rankingTitle');
-    const searchForm = document.getElementById('searchForm'); // searchFormEl から変更 (一貫性のため)
-    const searchInput = document.getElementById('searchInput'); // searchInputEl から変更
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
     const selfRecordElement = document.getElementById('selfRecord');
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link[data-type]');
     const loadingMessageElement = document.getElementById('loadingMessage');
-    const pageTitleElement = document.getElementById('pageTitle'); // pageTitleEl から変更
+    const pageTitleElement = document.getElementById('pageTitle');
 
 
     function cookie(name, value, timeInDays) {
@@ -149,7 +149,7 @@
     }
     function applyI18N() {
         if (!I18N) return;
-        if (pageTitleElement && I18N['rank-title']) pageTitleElement.textContent = I18N['rank-title']; // pageTitleEl -> pageTitleElement
+        if (pageTitleElement && I18N['rank-title']) pageTitleElement.textContent = I18N['rank-title'];
         document.documentElement.lang = I18N['lang'] || 'en';
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
@@ -162,7 +162,7 @@
         updateRankingTitle();
     }
     function updateRankingTitle() {
-        if (!rankingTitleElement || !I18N) return; // rankingTitleEl -> rankingTitleElement
+        if (!rankingTitleElement || !I18N) return;
         let titleKey = `${currentRankingType}-rank`;
         if (currentRankingType === 'query') titleKey = 'query-record';
         else if (currentRankingType === 'all') titleKey = 'all-rank';
@@ -172,12 +172,12 @@
         }
     }
     async function loadRanking() {
-      if (loadingMessageElement) loadingMessageElement.style.display = 'block'; // loadingMsgEl -> loadingMessageElement
+      if (loadingMessageElement) loadingMessageElement.style.display = 'block';
       if (leaderboardElement) leaderboardElement.innerHTML = '';
       if (loadingMessageElement && leaderboardElement) leaderboardElement.appendChild(loadingMessageElement);
       if (paginationElement) paginationElement.innerHTML = '';
 
-      let queryBuilder = supaClient // ★★★ supabase を supaClient に変更 ★★★
+      let queryBuilder = supaClient
         .from('leaderboard_highest_scores')
         .select('name, score, comment, created_at, user_id', { count: 'exact' });
 
@@ -185,18 +185,28 @@
       if (currentRankingType === 'day') {
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         queryBuilder = queryBuilder.gte('created_at', todayStart);
+        // デイリーランキングは100点以上のみ表示
+        queryBuilder = queryBuilder.gte('score', 100);
       } else if (currentRankingType === 'week') {
         const dayOfWeek = now.getDay();
         const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         const weekStart = new Date(now.setDate(diff));
         weekStart.setHours(0,0,0,0);
         queryBuilder = queryBuilder.gte('created_at', weekStart.toISOString());
+        // ウィークリーランキングは100点以上のみ表示
+        queryBuilder = queryBuilder.gte('score', 100);
       } else if (currentRankingType === 'month') {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         queryBuilder = queryBuilder.gte('created_at', monthStart);
+        // マンスリーランキングは130点以上のみ表示
+        queryBuilder = queryBuilder.gte('score', 130);
       } else if (currentRankingType === 'query' && currentQuery) {
         queryBuilder = queryBuilder.ilike('name', `%${currentQuery}%`);
+      } else if (currentRankingType === 'all') {
+        // 総合ランキングは130点以上のみ表示
+        queryBuilder = queryBuilder.gte('score', 130);
       }
+      
       queryBuilder = queryBuilder.order('score', { ascending: false })
                                  .order('created_at', { ascending: true });
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -211,16 +221,16 @@
           return;
         }
         totalItems = count || 0;
-        if (leaderboardElement) { // leaderboardElement の存在を確認
+        if (leaderboardElement) {
             if (data.length === 0) {
                 leaderboardElement.innerHTML = `<div class="list-group-item text-center p-5">${(I18N && I18N['no-data']) || 'No data found.'}</div>`;
             } else {
                 leaderboardElement.innerHTML = '';
                 data.forEach((r, index) => {
                     const rank = offset + index + 1;
-                    const li = document.createElement('a');
-                    li.href = '#';
-                    li.className = 'list-group-item list-group-item-action';
+                    // <a>タグから<div>タグに変更
+                    const li = document.createElement('div');
+                    li.className = 'list-group-item';
                     li.innerHTML = `
                     <div class="d-flex w-100 justify-content-between align-items-center">
                         <h5 class="mb-0">
@@ -245,7 +255,7 @@
       }
     }
     function renderPagination() {
-        if (!paginationElement) return; // paginationElement の存在を確認
+        if (!paginationElement) return;
         paginationElement.innerHTML = '';
         const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
         if (totalPages <= 1) return;
@@ -275,7 +285,7 @@
         paginationElement.appendChild(createPageItem('»', currentPage + 1, currentPage === totalPages, false, true));
     }
     async function loadSelfRecord() {
-      if (!selfRecordElement) return; // selfRecordElement の存在を確認
+      if (!selfRecordElement) return;
       
       // ユーザー名とユーザーIDの両方を取得
       const username = cookie('username');
@@ -330,7 +340,7 @@
         currentRankingType = params.get('type') || 'all';
         currentPage = parseInt(params.get('page')) || 1;
         currentQuery = params.get('query') || '';
-        if (searchInput && currentRankingType === 'query' && currentQuery) { // searchInput の存在を確認
+        if (searchInput && currentRankingType === 'query' && currentQuery) {
             searchInput.value = currentQuery;
         }
         navLinks.forEach(l => l.classList.remove('active'));
@@ -341,7 +351,7 @@
              if (allLink) allLink.classList.add('active');
         }
     }
-    if (navLinks.length > 0) { // navLinks の存在を確認
+    if (navLinks.length > 0) {
         navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
@@ -359,7 +369,7 @@
         });
         });
     }
-    if (searchForm) { // searchForm の存在を確認
+    if (searchForm) {
         searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const queryText = searchInput ? searchInput.value.trim() : '';
