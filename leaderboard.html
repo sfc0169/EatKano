@@ -20,6 +20,7 @@
     #leaderboard .list-group-item small.text-muted {font-size: 0.8rem;}
     .pagination .page-link { font-size: 0.9rem; }
     .navbar-nav .nav-link.active { font-weight: bold; } /* アクティブなリンクを太字に */
+    #leaderboard .list-group-item { cursor: default; } /* クリックできない見た目に変更 */
   </style>
 </head>
 <body>
@@ -181,20 +182,21 @@
         .from('leaderboard_highest_scores')
         .select('name, score, comment, created_at, user_id', { count: 'exact' });
 
+      // 特定ユーザーIDを除外
+      queryBuilder = queryBuilder.neq('user_id', '018d6d0a-5991-41ab-8d3c-7374b1908e1c');
+
       const now = new Date();
       if (currentRankingType === 'day') {
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         queryBuilder = queryBuilder.gte('created_at', todayStart);
-        // デイリーランキングは100点以上のみ表示
-        queryBuilder = queryBuilder.gte('score', 100);
+        // デイリーランキングはスコア制限なし
       } else if (currentRankingType === 'week') {
         const dayOfWeek = now.getDay();
         const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         const weekStart = new Date(now.setDate(diff));
         weekStart.setHours(0,0,0,0);
         queryBuilder = queryBuilder.gte('created_at', weekStart.toISOString());
-        // ウィークリーランキングは100点以上のみ表示
-        queryBuilder = queryBuilder.gte('score', 100);
+        // ウィークリーランキングはスコア制限なし
       } else if (currentRankingType === 'month') {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         queryBuilder = queryBuilder.gte('created_at', monthStart);
@@ -228,7 +230,6 @@
                 leaderboardElement.innerHTML = '';
                 data.forEach((r, index) => {
                     const rank = offset + index + 1;
-                    // <a>タグから<div>タグに変更
                     const li = document.createElement('div');
                     li.className = 'list-group-item';
                     li.innerHTML = `
@@ -251,7 +252,7 @@
       } catch (e) {
           if (loadingMessageElement) loadingMessageElement.style.display = 'none';
           console.error('Ranking processing error:', e);
-          if (leaderboardElement) leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${(I18N && I18N['error-loading']) || 'Error processing ranks.'}</div>`;
+          if (leaderboardElement) leaderboardElement.innerHTML = `<div class="list-group-item list-group-item-danger">${(I18N && I18N['error-loading']) || 'Error loading ranks.'}</div>`;
       }
     }
     function renderPagination() {
